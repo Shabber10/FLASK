@@ -74,7 +74,7 @@ class RegistrationUploadForm(FlaskForm):
     # In-line Custom Validator for Username
     def validate_username(self, field):
         forbidden = ['admin', 'root', 'superuser', 'administrator', 'system']
-        if field.data.strip().lower() in forbidden:
+        if field.data and field.data.strip().lower() in forbidden:
             raise ValidationError(f"The username '{field.data}' is reserved by system administrators.")
 
 
