@@ -148,3 +148,19 @@ cython_debug/
 *.db
 *.sqlite
 *.sqlite3
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary & backup files
+*.tmp
+*.bak
+*.swp
+*~
+
