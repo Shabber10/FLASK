@@ -5,8 +5,8 @@ from flask_talisman import Talisman
 app = Flask(__name__)
 
 csp = {
-    'default-src': ''self'',
-    'script-src': ''self''
+    'default-src': "'self'",
+    'script-src': "'self'"
 }
 
 talisman = Talisman(app, content_security_policy=csp, force_https=False)
