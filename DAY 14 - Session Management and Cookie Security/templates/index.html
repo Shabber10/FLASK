@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Session Security Portal - Day 14{% endblock %}
+
+{% block content %}
+    {% if session.get('user_id') %}
+        <p>Session Status: <span class="status-badge">LOGGED IN</span></p>
+        <table>
+            <thead><tr><th>Session Key</th><th>Active Value</th></tr></thead>
+            <tbody>
+                <tr><td><code>user_id</code></td><td>{{ session.user_id }}</td></tr>
+                <tr><td><code>username</code></td><td><strong>{{ session.username }}</strong></td></tr>
+                <tr><td><code>role</code></td><td>{{ session.role }}</td></tr>
+                <tr><td><code>permanent</code></td><td>{{ session.permanent }}</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top: 20px;">
+            <a class="btn-danger" href="/logout">Logout & Clear Session</a>
+        </p>
+    {% else %}
+        <p>Session Status: <span class="status-badge-off">NOT LOGGED IN</span></p>
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" name="username" placeholder="Enter username (e.g. alice_dev)" required>
+            </div>
+            <button class="btn" type="submit">Create Secure Session</button>
+        </form>
+    {% endif %}
+
+    <hr style="margin-top: 30px; border: none; border-top: 1px solid #e9ecef;">
+    <p><a class="btn" href="/api/profile">Inspect Profile API (/api/profile)</a></p>
+{% endblock %}
