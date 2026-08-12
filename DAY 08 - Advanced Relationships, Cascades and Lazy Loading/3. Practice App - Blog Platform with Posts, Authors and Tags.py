@@ -2,12 +2,15 @@
 ===============================================================================
 Day 08 Practice Script: Multi-Model Blog Platform with Complex Relationships
 ===============================================================================
-This script demonstrates:
-1. One-to-Many relationships with cascade delete orphans (Posts -> Comments).
-2. Many-to-Many relationships via secondary association table (Posts <-> Tags).
-3. Eager loading using `selectinload()` to eliminate N+1 query problems.
-4. Dynamic relationship querying with `lazy='dynamic'`.
-5. Web UI & REST API for Authors, Posts, Comments, and Tags.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: One-to-Many relationships with cascade delete orphans (Posts -> Comments).
+2. STEP 2: Many-to-Many relationships via secondary association table (Posts <-> Tags).
+3. STEP 3: Initializing database & pre-seeding initial relational data in `app.app_context()`.
+4. STEP 4: Eager loading using `selectinload()` to eliminate N+1 query problems.
+5. STEP 5: Cascading post deletion and automatic orphan comment removal.
+6. STEP 6: Web UI & REST API for Authors, Posts, Comments, and Tags.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +19,7 @@ How to run this script:
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+from flask import Flask, jsonify, request, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import selectinload, joinedload
 
@@ -29,7 +32,7 @@ db = SQLAlchemy(app)
 
 
 # =============================================================================
-# 1. Association Table for Many-to-Many (Posts <-> Tags)
+# STEP 2: Association Table for Many-to-Many (Posts <-> Tags)
 # =============================================================================
 post_tags = db.Table('post_tags',
     db.Column('post_id', db.Integer, db.ForeignKey('posts.id', ondelete='CASCADE'), primary_key=True),
@@ -38,7 +41,7 @@ post_tags = db.Table('post_tags',
 
 
 # =============================================================================
-# 2. ORM Models
+# STEP 1: ORM Models & One-to-Many / Many-to-Many Relationships
 # =============================================================================
 class User(db.Model):
     """ORM Model representing Blog Authors."""
@@ -99,7 +102,9 @@ class Comment(db.Model):
     post_id = db.Column(db.Integer, db.ForeignKey('posts.id', ondelete='CASCADE'), nullable=False)
 
 
-# Initialize Tables & Pre-seed Initial Sample Data
+# =============================================================================
+# STEP 3: Initialize Tables & Pre-seed Initial Sample Data
+# =============================================================================
 with app.app_context():
     db.create_all()
     if not db.session.execute(db.select(User)).scalars().first():
@@ -121,91 +126,47 @@ with app.app_context():
 
 
 # =============================================================================
-# 3. HTML UI Template String
+# STEP 4 & 5: Web UI Route Handlers (Eager Loading & Cascade Delete)
 # =============================================================================
-BLOG_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 08 Blog Platform</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 30px; color: #333; }
-        .card { max-width: 800px; margin: 0 auto 20px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-        h2 { color: #2c3e50; margin-top: 0; }
-        .tag { background: #8e44ad; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-right: 5px; }
-        .comment-box { background: #f8f9fa; padding: 12px; border-left: 4px solid #3498db; margin-top: 10px; font-size: 0.9em; border-radius: 4px; }
-        .meta { color: #7f8c8d; font-size: 0.85em; }
-        .btn-danger { background: #e74c3c; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: bold; }
-        .btn-danger:hover { background: #c0392b; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>📝 Blog Engine - Relationship & Cascade Demo (Day 08)</h2>
-        <p>Demonstrating One-to-Many, Many-to-Many, and Cascade Delete-Orphan behavior.</p>
-    </div>
 
-    {% for p in posts %}
-    <div class="card">
-        <h3>{{ p.title }}</h3>
-        <p class="meta">By <strong>{{ p.author.username }}</strong> on {{ p.created_at.strftime("%b %d, %Y") }}</p>
-
-        <p>{{ p.content }}</p>
-
-        <div style="margin-bottom: 15px;">
-            <strong>Tags:</strong>
-            {% for t in p.tags %}
-                <span class="tag">{{ t.name }}</span>
-            {% endfor %}
-        </div>
-
-        <h4>Comments ({{ p.comments|length }}) <a class="btn-danger" href="/posts/delete/{{ p.id }}">Delete Post (Triggers Cascade)</a></h4>
-        {% for c in p.comments %}
-            <div class="comment-box">
-                <strong>{{ c.author_name }}:</strong> {{ c.body }}
-            </div>
-        {% else %}
-            <p class="meta">No comments yet.</p>
-        {% endfor %}
-    </div>
-    {% endfor %}
-</body>
-</html>
-"""
-
-
-# =============================================================================
-# 4. Route Handlers
-# =============================================================================
 @app.route('/')
 def index():
-    """Eager loads comments and tags using selectinload to prevent N+1 query problems."""
+    """
+    Step 4: Eager loads comments and tags using selectinload to prevent N+1 query problems.
+    Renders templates/blog.html file.
+    """
     stmt = db.select(Post).options(selectinload(Post.comments), selectinload(Post.tags)).order_by(Post.id.desc())
     posts = db.session.execute(stmt).scalars().all()
-    return render_template_string(BLOG_HTML, posts=posts)
+    return render_template('blog.html', posts=posts)
 
 
 @app.route('/posts/delete/<int:post_id>')
 def delete_post(post_id):
-    """Deletes Post, automatically triggering cascade delete for associated Comments."""
+    """
+    Step 5: Deletes Post, automatically triggering cascade delete for associated Comments.
+    """
     post = db.session.get(Post, post_id)
     if post:
         db.session.delete(post)
         db.session.commit()
+        print(f"🗑️ Deleted Post #{post_id} and its associated comments via cascade delete!")
     return redirect(url_for('index'))
 
 
+# =============================================================================
+# STEP 6: RESTful JSON API Endpoints
+# =============================================================================
+
 @app.route('/api/posts')
 def api_posts():
-    """API Endpoint returning posts and nested relationships as JSON."""
+    """Step 6: API Endpoint returning posts and nested relationships as JSON."""
     stmt = db.select(Post).options(selectinload(Post.comments), selectinload(Post.tags))
     posts = db.session.execute(stmt).scalars().all()
     return jsonify([p.to_dict() for p in posts]), 200
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
