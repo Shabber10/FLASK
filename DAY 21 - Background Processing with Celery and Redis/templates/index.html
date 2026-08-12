@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Celery Task Queue Dashboard - Day 21{% endblock %}
+
+{% block content %}
+    <p>Task Engine Status: <span class="badge">Celery + Redis / Simulator Ready</span></p>
+
+    <h3>Trigger Background Jobs:</h3>
+    <p>
+        <button class="btn" onclick="triggerJob('/api/v1/jobs/send-email')">📧 Queue Asynchronous Email (4s)</button>
+        <button class="btn btn-success" onclick="triggerJob('/api/v1/jobs/generate-report')">📄 Queue PDF Report (6s)</button>
+    </p>
+
+    <h3>Live Job Monitoring Console:</h3>
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px; overflow-y: auto;">
+        Click a button above to queue a background task...
+    </div>
+
+    <script>
+        function triggerJob(url) {
+            const consoleDiv = document.getElementById('output');
+            consoleDiv.innerHTML = "Submitting job request to server...";
+            
+            fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                consoleDiv.innerHTML = "HTTP 202 ACCEPTED!<br>Task ID: " + data.task_id + "<br>Engine: " + data.engine + "<br>Polling status...";
+                pollStatus(data.task_id);
+            });
+        }
+
+        function pollStatus(taskId) {
+            const consoleDiv = document.getElementById('output');
+            const interval = setInterval(() => {
+                fetch('/api/v1/jobs/' + taskId)
+                .then(r => r.json())
+                .then(data => {
+                    consoleDiv.innerHTML = "Polling Task ID: " + data.task_id + "<br>State: <strong>" + data.state + "</strong>";
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(interval);
+                        consoleDiv.innerHTML += "<br>🎉 Result: " + JSON.stringify(data.result);
+                    }
+                });
+            }, 1000);
+        }
+    </script>
+{% endblock %}

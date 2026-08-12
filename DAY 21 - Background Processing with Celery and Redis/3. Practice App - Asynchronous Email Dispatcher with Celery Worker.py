@@ -2,13 +2,15 @@
 ===============================================================================
 Day 21 Practice Script: Asynchronous Background Processing Engine
 ===============================================================================
-This script demonstrates:
-1. Configuring Celery with Flask (`celery_init_app()`).
-2. Defining background tasks (`@celery_app.task`).
-3. Triggering background tasks (`.delay()` and `.apply_async()`).
-4. Returning HTTP 202 Accepted status responses.
-5. Polling task execution states (`AsyncResult`) from Redis / Fallback Store.
-6. Interactive Web UI background job management dashboard.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Configuring Celery with Flask (`celery_init_app()`).
+2. STEP 2: Fallback In-Memory Task Simulator (`InMemoryTaskStore`) ensuring script runs without Redis.
+3. STEP 3: Defining background tasks (`@celery_app.task`).
+4. STEP 4: Triggering background tasks (`.delay()` and `.apply_async()`) returning HTTP 202 Accepted.
+5. STEP 5: Polling task execution states (`AsyncResult`) from Redis / Fallback Store.
+6. STEP 6: Interactive Web UI background job management dashboard rendering `templates/index.html`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -19,7 +21,7 @@ How to run this script:
 import time
 import uuid
 from threading import Thread
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 from celery import Celery, Task
 
 app = Flask(__name__)
@@ -36,10 +38,10 @@ app.config.from_mapping(
 
 
 # =============================================================================
-# 1. Official Flask-Celery Application Factory Helper
+# STEP 1: Official Flask-Celery Application Factory Helper
 # =============================================================================
 def celery_init_app(app: Flask) -> Celery:
-    """Official Flask 2.3+ Celery Integration Factory."""
+    """Step 1: Official Flask 2.3+ Celery Integration Factory."""
     class FlaskTask(Task):
         def __call__(self, *args, **kwargs):
             with app.app_context():
@@ -56,10 +58,10 @@ celery_app = celery_init_app(app)
 
 
 # =============================================================================
-# 2. Fallback In-Memory Task Simulator (Ensures Script Runs Without Redis)
+# STEP 2: Fallback In-Memory Task Simulator (Ensures Script Runs Without Redis)
 # =============================================================================
 class InMemoryTaskStore:
-    """Fallback simulator tracking task states if Redis server is offline."""
+    """Step 2a: Fallback simulator tracking task states if Redis server is offline."""
     def __init__(self):
         self.tasks = {}
 
@@ -81,7 +83,7 @@ task_store = InMemoryTaskStore()
 
 
 def simulate_background_execution(task_id, seconds_delay, return_value):
-    """Thread simulator executing background work if Redis worker is not running."""
+    """Step 2b: Thread simulator executing background work if Redis worker is not running."""
     time.sleep(1)
     task_store.update_task(task_id, "STARTED")
     time.sleep(seconds_delay)
@@ -89,29 +91,30 @@ def simulate_background_execution(task_id, seconds_delay, return_value):
 
 
 # =============================================================================
-# 3. Background Tasks
+# STEP 3: Background Tasks
 # =============================================================================
 @celery_app.task(bind=True)
 def send_email_task(self, recipient_email, subject_text):
-    """Celery background task simulating email dispatch."""
+    """Step 3a: Celery background task simulating email dispatch."""
     time.sleep(4)  # Simulate 4-second SMTP network delay
     return f"Email with subject '{subject_text}' successfully delivered to {recipient_email}."
 
 
 @celery_app.task(bind=True)
 def generate_pdf_report_task(self, report_id):
-    """Celery background task simulating PDF generation."""
+    """Step 3b: Celery background task simulating PDF generation."""
     time.sleep(6)  # Simulate heavy PDF computation
     return f"PDF Report #{report_id} generated and saved to S3 storage."
 
 
 # =============================================================================
-# 4. REST API Endpoints
+# STEP 4 & 5: REST API Endpoints (Queue Jobs & Poll Status)
 # =============================================================================
 
 # POST /api/v1/jobs/send-email -> Queue Email Task
 @app.route('/api/v1/jobs/send-email', methods=['POST'])
 def trigger_email_job():
+    """Step 4a: Queues Email task asynchronously and returns HTTP 202 Accepted."""
     data = request.get_json() or {}
     email = data.get('email', 'user@example.com')
     subject = data.get('subject', 'Welcome to Flask Masterclass!')
@@ -140,6 +143,7 @@ def trigger_email_job():
 # POST /api/v1/jobs/generate-report -> Queue Heavy PDF Task
 @app.route('/api/v1/jobs/generate-report', methods=['POST'])
 def trigger_report_job():
+    """Step 4b: Queues heavy PDF Report task asynchronously."""
     report_id = str(uuid.uuid4())[:8]
 
     try:
@@ -164,13 +168,12 @@ def trigger_report_job():
 # GET /api/v1/jobs/<task_id> -> Poll Task Status
 @app.route('/api/v1/jobs/<task_id>', methods=['GET'])
 def get_job_status(task_id):
-    # Try querying Celery AsyncResult first
+    """Step 5: Queries task state (PENDING, STARTED, SUCCESS) from Redis / Simulator."""
     try:
         async_res = celery_app.AsyncResult(task_id)
         state = async_res.state
         result = async_res.result if state == 'SUCCESS' else None
     except Exception:
-        # Fallback to local simulator store
         sim_task = task_store.get_task(task_id)
         if sim_task:
             state = sim_task["state"]
@@ -187,81 +190,16 @@ def get_job_status(task_id):
 
 
 # =============================================================================
-# 5. Interactive Web UI Job Dashboard
+# STEP 6: Interactive Web UI Dashboard Route Handler (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 21 Background Processing</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #d35400; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-                .btn { display: inline-block; background: #2980b9; color: white; padding: 10px 18px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px; }
-                .btn-success { background: #27ae60; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>⚙️ Background Task Queue & Celery Engine (Day 21)</h2>
-                <p>Task Engine Status: <span class="badge">Celery + Redis / Simulator Ready</span></p>
-
-                <h3>Trigger Background Jobs:</h3>
-                <p>
-                    <button class="btn" onclick="triggerJob('/api/v1/jobs/send-email')">📧 Queue Asynchronous Email (4s)</button>
-                    <button class="btn btn-success" onclick="triggerJob('/api/v1/jobs/generate-report')">📄 Queue PDF Report (6s)</button>
-                </p>
-
-                <h3>Live Job Monitoring Console:</h3>
-                <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px; overflow-y: auto;">
-                    Click a button above to queue a background task...
-                </div>
-
-                <script>
-                    function triggerJob(url) {
-                        const consoleDiv = document.getElementById('output');
-                        consoleDiv.innerHTML = "Submitting job request to server...";
-                        
-                        fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' } })
-                        .then(r => r.json())
-                        .then(data => {
-                            consoleDiv.innerHTML = "HTTP 202 ACCEPTED!<br>Task ID: " + data.task_id + "<br>Engine: " + data.engine + "<br>Polling status...";
-                            pollStatus(data.task_id);
-                        });
-                    }
-
-                    function pollStatus(taskId) {
-                        const consoleDiv = document.getElementById('output');
-                        const interval = setInterval(() => {
-                            fetch('/api/v1/jobs/' + taskId)
-                            .then(r => r.json())
-                            .then(data => {
-                                consoleDiv.innerHTML = "Polling Task ID: " + data.task_id + "<br>State: <strong>" + data.state + "</strong>";
-                                if (data.state === 'SUCCESS') {
-                                    clearInterval(interval);
-                                    consoleDiv.innerHTML += "<br>🎉 Result: " + JSON.stringify(data.result);
-                                }
-                            });
-                        }, 1000);
-                    }
-                </script>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 6: Renders templates/index.html dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 6. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
