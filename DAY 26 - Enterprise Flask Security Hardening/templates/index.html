@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Enterprise Security Hardening Dashboard - Day 26{% endblock %}
+
+{% block content %}
+    <p>Security Hardening Suite: <span class="badge">Flask-Talisman Active</span></p>
+
+    <h3>1. Active HTTP Security Headers Audit:</h3>
+    <table>
+        <thead><tr><th>Security Header</th><th>Status</th><th>Protection Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>Content-Security-Policy</code></td><td><span class="badge">ENABLED</span></td><td>Whitelists trusted scripts; blocks XSS execution</td></tr>
+            <tr><td><code>X-Frame-Options</code></td><td><span class="badge">DENY</span></td><td>Blocks Clickjacking iframe embedding</td></tr>
+            <tr><td><code>X-Content-Type-Options</code></td><td><span class="badge">nosniff</span></td><td>Blocks MIME-type sniffing attacks</td></tr>
+            <tr><td><code>HttpOnly Cookies</code></td><td><span class="badge">ENABLED</span></td><td>Blocks JavaScript session cookie theft</td></tr>
+        </tbody>
+    </table>
+
+    <h3 style="margin-top: 25px;">2. Interactive XSS Input Sanitization Tester:</h3>
+    <p>Enter a raw HTML payload containing malicious <code>&lt;script&gt;</code> tags:</p>
+    <textarea id="xss_input">&lt;script&gt;alert('XSS Theft! Cookie=' + document.cookie)&lt;/script&gt;&lt;b&gt;Hello World&lt;/b&gt;</textarea>
+    <p><button class="btn" onclick="testSanitizer()">Test Input Sanitizer API</button></p>
+
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 80px; display: none;">
+    </div>
+
+    <script>
+        function testSanitizer() {
+            const inputVal = document.getElementById('xss_input').value;
+            const out = document.getElementById('output');
+            out.style.display = 'block';
+            out.innerHTML = "Submitting to /api/v1/sanitize...";
+
+            fetch('/api/v1/sanitize', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ raw_input: inputVal })
+            })
+            .then(r => r.json())
+            .then(data => {
+                out.innerHTML = "STATUS 200 OK!<br>" +
+                    "XSS Threat Neutralized: <strong>" + data.xss_threat_neutralized + "</strong><br><br>" +
+                    "Sanitized Output:<br>" + data.sanitized_output;
+            });
+        }
+    </script>
+{% endblock %}
