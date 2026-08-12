@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Directory System - Day 06{% endblock %}
+
+{% block content %}
+    <h2>📊 Employee Directory System (Day 06)</h2>
+    <p style="color: #7f8c8d; font-size: 0.9em;">
+        🗄️ Powered by SQLite Database Engine & Flask-SQLAlchemy 3.x ORM Models.
+    </p>
+
+    <!-- Form for Adding New Employees -->
+    <form class="form-inline" method="POST" action="/employees/add">
+        <input type="text" name="name" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="text" name="department" placeholder="Department" required>
+        <input type="number" step="0.01" name="salary" placeholder="Salary ($)" required>
+        <button class="btn" type="submit">Add Employee</button>
+    </form>
+
+    <!-- Table Displaying Database Rows -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Department</th>
+                <th>Salary</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for e in employees %}
+            <tr>
+                <td>{{ e.id }}</td>
+                <td><strong>{{ e.name }}</strong></td>
+                <td>{{ e.email }}</td>
+                <td>{{ e.department }}</td>
+                <td>${{ "%.2f"|format(e.salary) }}</td>
+                <td><a class="delete-btn" href="/employees/delete/{{ e.id }}">Delete</a></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No employees found in database.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

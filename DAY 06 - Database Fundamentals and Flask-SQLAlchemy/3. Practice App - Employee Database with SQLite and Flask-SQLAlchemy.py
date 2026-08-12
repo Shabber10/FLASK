@@ -2,12 +2,15 @@
 ===============================================================================
 Day 06 Practice Script: Employee Directory Database Application
 ===============================================================================
-This script demonstrates:
-1. Setting up an SQLite database connection using Flask-SQLAlchemy 3.x.
-2. Defining ORM Model classes (`Employee`) with column data types and constraints.
-3. Performing CRUD operations using modern SQLAlchemy 2.0 syntax (`db.select()`, `db.session.get()`).
-4. Implementing transaction safety using `db.session.rollback()`.
-5. Exposing both a web UI and a RESTful JSON API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Setting up SQLite database connection and defining `Employee(db.Model)`.
+2. STEP 2: Creating SQL tables (`db.create_all()`) and pre-seeding initial data in `app.app_context()`.
+3. STEP 3: Querying database rows using SQLAlchemy 2.0 syntax (`db.select()`, `scalars().all()`).
+4. STEP 4: Handling HTML form insertion with transaction safety (`db.session.rollback()`).
+5. STEP 5: Deleting database rows by Primary Key ID (`db.session.delete()`).
+6. STEP 6: Exposing RESTful JSON API endpoints (`/api/employees`).
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,13 +19,13 @@ How to run this script:
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for, flash
+from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import SQLAlchemyError
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'day06-sqlalchemy-masterclass-secret'
-# Configure local SQLite database file path (stored inside instance/ or working dir)
+# Configure local SQLite database file path (stored as instance/employees.db)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -31,8 +34,9 @@ db = SQLAlchemy(app)
 
 
 # =============================================================================
-# 1. Employee ORM Model Definition
+# STEP 1: Employee ORM Model Definition
 # =============================================================================
+
 class Employee(db.Model):
     """ORM Model representing the 'employees' database table."""
     __tablename__ = 'employees'
@@ -56,8 +60,12 @@ class Employee(db.Model):
         }
 
 
-# Automatically create SQL tables & pre-seed initial sample data on app startup
+# =============================================================================
+# STEP 2: Database Initialization & Initial Data Seeding
+# =============================================================================
+
 with app.app_context():
+    # Creates all tables defined by db.Model classes if they do not exist
     db.create_all()
     
     # Check if table is empty using SQLAlchemy 2.0 select statement
@@ -75,89 +83,25 @@ with app.app_context():
 
 
 # =============================================================================
-# 2. HTML UI Template String
+# STEP 3 & 4 & 5: Web UI Routes (HTML via render_template)
 # =============================================================================
-INDEX_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 06 Employee Directory</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; background: #f4f6f9; color: #333; }
-        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); max-width: 850px; margin: auto; }
-        h2 { color: #2c3e50; margin-top: 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 12px; border-bottom: 1px solid #e9ecef; text-align: left; }
-        th { background-color: #2c3e50; color: white; }
-        .btn { background: #27ae60; color: white; padding: 10px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
-        .btn:hover { background: #219150; }
-        .form-inline { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
-        .form-inline input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 150px; }
-        .delete-btn { color: #e74c3c; font-weight: bold; text-decoration: none; }
-        .delete-btn:hover { text-decoration: underline; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>📊 Employee Directory System (Day 06)</h2>
 
-        <!-- Form for Adding New Employees -->
-        <form class="form-inline" method="POST" action="/employees/add">
-            <input type="text" name="name" placeholder="Full Name" required>
-            <input type="email" name="email" placeholder="Email Address" required>
-            <input type="text" name="department" placeholder="Department" required>
-            <input type="number" step="0.01" name="salary" placeholder="Salary ($)" required>
-            <button class="btn" type="submit">Add Employee</button>
-        </form>
-
-        <!-- Table Displaying Database Rows -->
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Department</th>
-                    <th>Salary</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for e in employees %}
-                <tr>
-                    <td>{{ e.id }}</td>
-                    <td><strong>{{ e.name }}</strong></td>
-                    <td>{{ e.email }}</td>
-                    <td>{{ e.department }}</td>
-                    <td>${{ "%.2f"|format(e.salary) }}</td>
-                    <td><a class="delete-btn" href="/employees/delete/{{ e.id }}">Delete</a></td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6">No employees found in database.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</body>
-</html>
-"""
-
-
-# =============================================================================
-# 3. Web UI Routes (HTML)
-# =============================================================================
 @app.route('/')
 def index():
-    """Renders HTML Employee Directory listing all employees."""
+    """
+    Step 3: Renders HTML Employee Directory querying all database rows.
+    Uses modern SQLAlchemy 2.0 syntax: db.select(Employee).order_by(...)
+    """
     stmt = db.select(Employee).order_by(Employee.id.desc())
     emps = db.session.execute(stmt).scalars().all()
-    return render_template_string(INDEX_HTML, employees=emps)
+    return render_template('employees.html', employees=emps)
 
 
 @app.route('/employees/add', methods=['POST'])
 def add_employee_form():
-    """Handles HTML Form Submission to create a new Employee record."""
+    """
+    Step 4: Form submission handler with transaction rollback safety.
+    """
     try:
         emp = Employee(
             name=request.form['name'],
@@ -167,29 +111,36 @@ def add_employee_form():
         )
         db.session.add(emp)
         db.session.commit()
+        flash(f"Employee '{emp.name}' added successfully!", "success")
     except SQLAlchemyError as e:
         db.session.rollback()
         print(f"❌ [DB ERROR] Rollback triggered: {e}")
+        flash("Failed to add employee. Email address may already be in use.", "danger")
         
     return redirect(url_for('index'))
 
 
 @app.route('/employees/delete/<int:emp_id>')
 def delete_employee_form(emp_id):
-    """Deletes an Employee record by Primary Key ID."""
+    """
+    Step 5: Deleting an Employee record by Primary Key ID.
+    Uses db.session.get(Employee, emp_id)
+    """
     emp = db.session.get(Employee, emp_id)
     if emp:
         db.session.delete(emp)
         db.session.commit()
+        flash(f"Employee #{emp_id} deleted successfully.", "success")
     return redirect(url_for('index'))
 
 
 # =============================================================================
-# 4. RESTful JSON API Routes
+# STEP 6: RESTful JSON API Endpoints
 # =============================================================================
+
 @app.route('/api/employees', methods=['GET'])
 def list_employees_api():
-    """API Endpoint returning all employees as JSON."""
+    """Step 6a: API Endpoint returning all employees as JSON."""
     stmt = db.select(Employee).order_by(Employee.id)
     emps = db.session.execute(stmt).scalars().all()
     return jsonify([e.to_dict() for e in emps]), 200
@@ -197,7 +148,7 @@ def list_employees_api():
 
 @app.route('/api/employees', methods=['POST'])
 def create_employee_api():
-    """API Endpoint creating a new employee from JSON payload."""
+    """Step 6b: API Endpoint creating a new employee from JSON payload."""
     data = request.get_json(silent=True) or {}
     if not all(k in data for k in ('name', 'email', 'department', 'salary')):
         return jsonify({"error": "Bad Request", "message": "Missing required fields"}), 400
@@ -218,7 +169,7 @@ def create_employee_api():
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
