@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Custom CLI & Extension Dashboard - Day 13{% endblock %}
+
+{% block content %}
+    <h2>🛠️ Custom CLI Commands & Extension Demo (Day 13)</h2>
+    <p>Custom Extension Active: <span class="badge">RequestAnalyticsExt</span></p>
+
+    <h3>Available Terminal CLI Commands:</h3>
+    <ul>
+        <li><code>flask seed-users --count 5</code> -> Seeds sample users</li>
+        <li><code>flask reset-db</code> -> Interactively drops and recreates tables</li>
+        <li><code>flask analytics-report</code> -> Displays CLI request count report</li>
+    </ul>
+
+    <h3>Live Users in Database ({{ users|length }}):</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Username</th><th>Email</th></tr></thead>
+        <tbody>
+            {% for u in users %}
+            <tr><td>{{ u.id }}</td><td><strong>{{ u.username }}</strong></td><td>{{ u.email }}</td></tr>
+            {% else %}
+            <tr><td colspan="3">No users found. Run <code>flask seed-users</code> in terminal!</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
