@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}Pytest Masterclass Dashboard - Day 29{% endblock %}
+
+{% block content %}
+    <p>Test Suite Status: <span class="badge">Pytest In-Memory SQLite Active</span></p>
+
+    <h3>Active Pytest Automated Test Cases:</h3>
+    <ul>
+        <li><code>test_ping_endpoint()</code> — Tests HTTP 200 healthcheck payload.</li>
+        <li><code>test_user_registration_success()</code> — Tests user creation HTTP 201 response.</li>
+        <li><code>test_user_registration_duplicate_fails()</code> — Tests duplicate username HTTP 409 conflict.</li>
+        <li><code>test_create_task_authenticated()</code> — Tests task creation with <code>X-User-ID</code> header.</li>
+        <li><code>test_create_task_unauthenticated_fails()</code> — Tests HTTP 401 unauthorized rejection.</li>
+        <li><code>test_get_tasks_list()</code> — Tests fetching task collection.</li>
+    </ul>
+
+    <p style="margin-top: 20px;">
+        <button class="btn" onclick="runPytestSuite()">▶️ Run All Pytest Assertions</button>
+    </p>
+
+    <h3>Live Test Execution Telemetry:</h3>
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px;">
+        Click the button above to execute all Pytest assertions...
+    </div>
+
+    <script>
+        function runPytestSuite() {
+            const out = document.getElementById('output');
+            out.innerHTML = "Executing Pytest test suite assertions... Please wait...";
+
+            fetch('/api/v1/run-tests', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                out.innerHTML = "STATUS 200 OK!<br>" +
+                    "Test Cases Executed: <strong>" + data.total_tests + "</strong><br>" +
+                    "Passed: <span style='color:#27ae60; font-weight:bold;'>" + data.passed + "</span> | Failed: <span style='color:#e74c3c; font-weight:bold;'>" + data.failed + "</span><br><br>" +
+                    "Test Results Summary:<br>" + JSON.stringify(data.results, null, 2);
+            });
+        }
+    </script>
+{% endblock %}
