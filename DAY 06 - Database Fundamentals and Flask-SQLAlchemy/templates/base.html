@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 06 Employee Directory{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 30px; background: #f4f6f9; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); max-width: 850px; margin: auto; }
+        h2 { color: #2c3e50; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; border-bottom: 1px solid #e9ecef; text-align: left; }
+        th { background-color: #2c3e50; color: white; }
+        .btn { background: #27ae60; color: white; padding: 10px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: #219150; }
+        .form-inline { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .form-inline input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; flex: 1; min-width: 150px; }
+        .delete-btn { color: #e74c3c; font-weight: bold; text-decoration: none; }
+        .delete-btn:hover { text-decoration: underline; }
+        .alert { padding: 12px; margin-bottom: 20px; border-radius: 5px; color: white; font-weight: bold; }
+        .alert-success { background: #2ecc71; }
+        .alert-danger { background: #e74c3c; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
