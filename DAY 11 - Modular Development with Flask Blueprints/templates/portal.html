@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Multi-Blueprint Portal - Day 11{% endblock %}
+
+{% block content %}
+    <h1>🧩 Multi-Blueprint Portal (Day 11)</h1>
+    <p>This Flask application is organized into 3 modular Blueprints:</p>
+    <ul>
+        <li><code>auth_bp</code> -> URL Prefix: <code>/auth</code></li>
+        <li><code>admin_bp</code> -> URL Prefix: <code>/admin</code></li>
+        <li><code>api_v1_bp</code> -> URL Prefix: <code>/api/v1</code></li>
+    </ul>
+    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e9ecef;">
+    <div>
+        <a class="btn" href="{{ url_for('auth.login') }}">Go to Auth Login (/auth/login)</a>
+        <a class="btn btn-admin" href="{{ url_for('admin.dashboard') }}">Go to Admin Dashboard (/admin/dashboard)</a>
+        <a class="btn btn-api" href="{{ url_for('api_v1.get_users') }}">Call API Users (/api/v1/users)</a>
+    </div>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Module Dashboard - Day 11{% endblock %}
+
+{% block content %}
+    <h2>⚙️ Admin Module: Dashboard</h2>
+    <p>System Status: <strong style="color: #2ecc71;">ALL SYSTEMS OPERATIONAL</strong></p>
+    <ul>
+        <li>Active Users: 1,240</li>
+        <li>Database Binds: Primary, Audit</li>
+        <li>Registered Blueprints: Auth, Admin, API v1</li>
+    </ul>
+    
+    <hr style="margin: 20px 0; border: none; border-top: 1px solid #e9ecef;">
+    <p>
+        <a class="btn btn-danger" href="{{ url_for('auth.logout') }}">Logout</a>
+        <a class="btn btn-api" href="{{ url_for('api_v1.get_metrics') }}">View API Metrics</a>
+        <a class="btn" href="{{ url_for('home') }}">Back to Home Portal</a>
+    </p>
+{% endblock %}
