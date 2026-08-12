@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Schema Versioning Dashboard - Day 09{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <h3>💻 Essential Migration Terminal CLI Commands</h3>
+        <div class="cli-box">
+            # 1. Initialize migration repository (Run once per app):<br>
+            <span class="cli-cmd">flask db init</span><br><br>
+            # 2. Autogenerate new migration revision script after modifying models:<br>
+            <span class="cli-cmd">flask db migrate -m "Add UserAccount schema"</span><br><br>
+            # 3. Apply pending migration scripts to active database:<br>
+            <span class="cli-cmd">flask db upgrade</span><br><br>
+            # 4. Rollback last applied migration step:<br>
+            <span class="cli-cmd">flask db downgrade</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <h3>👤 Registered User Accounts (Migrated Database Table)</h3>
+        
+        <!-- Form for Adding New Users -->
+        <form class="form-inline" method="POST" action="/users/add">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="email" name="email" placeholder="Email Address" required>
+            <button class="btn" type="submit">Create User Account</button>
+        </form>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Verified Status</th>
+                    <th>Created At</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td><strong>{{ u.username }}</strong></td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        {% if u.is_verified %}
+                            <span class="badge badge-success">Verified</span>
+                        {% else %}
+                            <span class="badge">Unverified</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.created_at or 'N/A' }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5">No users found in database. Execute <code>flask db upgrade</code> and add a user above!</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
