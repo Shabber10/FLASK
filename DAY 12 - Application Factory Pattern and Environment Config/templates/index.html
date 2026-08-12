@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Application Factory & Config Status - Day 12{% endblock %}
+
+{% block content %}
+    <h2>🏭 Application Factory & Config Status (Day 12)</h2>
+    <p>Active Environment: <span class="badge">{{ config.ENV_NAME|upper }}</span></p>
+
+    <table>
+        <thead>
+            <tr><th>Setting Key</th><th>Value</th></tr>
+        </thead>
+        <tbody>
+            <tr><td><code>DEBUG</code></td><td>{{ config.DEBUG }}</td></tr>
+            <tr><td><code>TESTING</code></td><td>{{ config.TESTING }}</td></tr>
+            <tr><td><code>SQLALCHEMY_DATABASE_URI</code></td><td>{{ config.SQLALCHEMY_DATABASE_URI }}</td></tr>
+            <tr><td><code>SECRET_KEY</code></td><td>{{ config.SECRET_KEY[:8] }}... (Truncated for Security)</td></tr>
+            <tr><td><code>MAX_CONTENT_LENGTH</code></td><td>{{ config.MAX_CONTENT_LENGTH // (1024*1024) }} MB</td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 20px;">
+        <a class="btn" href="/api/config-status">View JSON Config API</a>
+        <a class="btn" href="/api/users">View Users API</a>
+    </p>
+{% endblock %}
