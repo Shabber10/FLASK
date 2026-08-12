@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Self-Documenting REST API Dashboard - Day 18{% endblock %}
+
+{% block content %}
+    <p>Framework: <span class="badge">Flask-Smorest + Marshmallow</span></p>
+
+    <p>This microservice automatically generates an OpenAPI 3.0 specification and interactive Swagger UI sandbox directly from Python code annotations!</p>
+
+    <a class="btn" href="/swagger-ui" target="_blank">🚀 Open Interactive Swagger UI Sandbox (/swagger-ui)</a>
+
+    <h3>Endpoints Summary:</h3>
+    <table>
+        <thead><tr><th>Verb</th><th>URL Path</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>GET</code></td><td><code>/api/v1/items/</code></td><td>List inventory items</td></tr>
+            <tr><td><code>POST</code></td><td><code>/api/v1/items/</code></td><td>Create item (Validated with ItemSchema)</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/items/1</code></td><td>Fetch single item details</td></tr>
+            <tr><td><code>PATCH</code></td><td><code>/api/v1/items/1</code></td><td>Partially update item</td></tr>
+            <tr><td><code>DELETE</code></td><td><code>/api/v1/items/1</code></td><td>Remove item</td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 25px;">
+        <a href="/openapi.json" target="_blank">Inspect OpenAPI 3.0 JSON Spec (/openapi.json)</a>
+    </p>
+{% endblock %}

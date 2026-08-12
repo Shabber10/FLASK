@@ -2,12 +2,15 @@
 ===============================================================================
 Day 18 Practice Script: Self-Documenting REST API with Flask-Smorest & Swagger UI
 ===============================================================================
-This script demonstrates:
-1. Building Class-Based REST Resources (`MethodView`).
-2. Integrating Marshmallow Schemas for input validation and output dumping.
-3. Decorating routes with `@blp.arguments` and `@blp.response`.
-4. Generating OpenAPI 3.0 JSON specifications automatically.
-5. Serving a live interactive Swagger UI API testing sandbox (`/swagger-ui`).
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Configuring OpenAPI 3.0 & Swagger UI settings (`OPENAPI_SWAGGER_UI_PATH`).
+2. STEP 2: Defining Marshmallow Schemas (`ItemSchema`, `ItemUpdateSchema`) for input/output.
+3. STEP 3: Class-Based Resource for Collection operations (`ItemListResource` using `MethodView`).
+4. STEP 4: Class-Based Resource for Single Resource operations (`ItemResource` for `get`, `patch`, `delete`).
+5. STEP 5: Registering Smorest Blueprint on API Manager (`api.register_blueprint(blp)`).
+6. STEP 6: Main Portal Home Route rendering `templates/index.html` with links to `/swagger-ui` and `/openapi.json`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +19,7 @@ How to run this script:
 4. Open the Swagger UI interactive sandbox at: http://127.0.0.1:5000/swagger-ui
 """
 
-from flask import Flask, jsonify, render_template_string
+from flask import Flask, jsonify, render_template
 from flask.views import MethodView
 from flask_smorest import Api, Blueprint, abort
 from marshmallow import Schema, fields, validate
@@ -24,7 +27,7 @@ from marshmallow import Schema, fields, validate
 app = Flask(__name__)
 
 # =============================================================================
-# 1. OpenAPI 3.0 & Swagger UI Configuration
+# STEP 1: OpenAPI 3.0 & Swagger UI Configuration
 # =============================================================================
 app.config['API_TITLE'] = 'E-Commerce Inventory Microservice API'
 app.config['API_VERSION'] = 'v1'
@@ -37,7 +40,7 @@ api = Api(app)
 
 
 # =============================================================================
-# 2. In-Memory Data Storage & Marshmallow Schemas
+# STEP 2: In-Memory Data Storage & Marshmallow Schemas
 # =============================================================================
 items_db = {
     1: {"id": 1, "name": "Ultra-Wide Gaming Monitor", "category": "Electronics", "price": 499.99},
@@ -46,7 +49,7 @@ items_db = {
 }
 
 class ItemSchema(Schema):
-    """Schema for validating and serializing Item resources."""
+    """Step 2a: Schema for validating and serializing Item resources."""
     id = fields.Int(dump_only=True)                                     # Output only
     name = fields.Str(required=True, validate=validate.Length(min=2, max=100))
     category = fields.Str(required=True, validate=validate.OneOf(['Electronics', 'Furniture', 'Books']))
@@ -54,21 +57,21 @@ class ItemSchema(Schema):
 
 
 class ItemUpdateSchema(Schema):
-    """Schema for partial update (PATCH) requests."""
+    """Step 2b: Schema for partial update (PATCH) requests."""
     name = fields.Str(validate=validate.Length(min=2, max=100))
     category = fields.Str(validate=validate.OneOf(['Electronics', 'Furniture', 'Books']))
     price = fields.Float(validate=validate.Range(min=0.01))
 
 
 # =============================================================================
-# 3. Smorest Blueprint & Class-Based Resources (MethodView)
+# STEP 3 & 4: Smorest Blueprint & Class-Based Resources (MethodView)
 # =============================================================================
 blp = Blueprint('items', 'items', url_prefix='/api/v1/items', description='Operations on Items Inventory')
 
 
 @blp.route('/')
 class ItemListResource(MethodView):
-    """Class-Based Resource handling collection operations (/api/v1/items)."""
+    """Step 3: Class-Based Resource handling collection operations (/api/v1/items)."""
 
     @blp.response(200, ItemSchema(many=True))
     def get(self):
@@ -87,7 +90,7 @@ class ItemListResource(MethodView):
 
 @blp.route('/<int:item_id>')
 class ItemResource(MethodView):
-    """Class-Based Resource handling single item operations (/api/v1/items/<id>)."""
+    """Step 4: Class-Based Resource handling single item operations (/api/v1/items/<id>)."""
 
     @blp.response(200, ItemSchema)
     def get(self, item_id):
@@ -114,65 +117,23 @@ class ItemResource(MethodView):
         return ""
 
 
-# Register Smorest Blueprint on API Manager
+# =============================================================================
+# STEP 5: Register Smorest Blueprint on API Manager
+# =============================================================================
 api.register_blueprint(blp)
 
 
 # =============================================================================
-# 4. Main Portal Home Route
+# STEP 6: Main Portal Home Route (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 18 Self-Documenting REST API</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #e67e22; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-                .btn { display: inline-block; background: #27ae60; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-top: 15px; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>📑 Self-Documenting REST API with OpenAPI 3.0 (Day 18)</h2>
-                <p>Framework: <span class="badge">Flask-Smorest + Marshmallow</span></p>
-
-                <p>This microservice automatically generates an OpenAPI 3.0 specification and interactive Swagger UI sandbox directly from Python code annotations!</p>
-
-                <a class="btn" href="/swagger-ui" target="_blank">🚀 Open Interactive Swagger UI Sandbox (/swagger-ui)</a>
-
-                <h3>Endpoints Summary:</h3>
-                <table>
-                    <thead><tr><th>Verb</th><th>URL Path</th><th>Description</th></tr></thead>
-                    <tbody>
-                        <tr><td><code>GET</code></td><td><code>/api/v1/items/</code></td><td>List inventory items</td></tr>
-                        <tr><td><code>POST</code></td><td><code>/api/v1/items/</code></td><td>Create item (Validated with ItemSchema)</td></tr>
-                        <tr><td><code>GET</code></td><td><code>/api/v1/items/1</code></td><td>Fetch single item details</td></tr>
-                        <tr><td><code>PATCH</code></td><td><code>/api/v1/items/1</code></td><td>Partially update item</td></tr>
-                        <tr><td><code>DELETE</code></td><td><code>/api/v1/items/1</code></td><td>Remove item</td></tr>
-                    </tbody>
-                </table>
-
-                <p style="margin-top: 25px;">
-                    <a href="/openapi.json" target="_blank">Inspect OpenAPI 3.0 JSON Spec (/openapi.json)</a>
-                </p>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 6: Renders templates/index.html REST API dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
