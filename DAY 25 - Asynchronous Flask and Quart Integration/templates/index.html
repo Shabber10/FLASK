@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Async Concurrency Dashboard - Day 25{% endblock %}
+
+{% block content %}
+    <p>Execution Engine: <span class="badge">Python asyncio.gather()</span></p>
+
+    <p>This demo fetches data from 5 external microservices (each having 1.0s latency):</p>
+
+    <p>
+        <button class="btn btn-danger" onclick="testBenchmark('/api/v1/sync-fetch')">🔴 Run Synchronous Sequential (~5.0s)</button>
+        <button class="btn" onclick="testBenchmark('/api/v1/async-fetch')">🟢 Run Asynchronous Parallel (~1.0s)</button>
+    </p>
+
+    <h3>Live Latency Benchmark Console:</h3>
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px;">
+        Click a benchmark button above to test concurrency execution...
+    </div>
+
+    <script>
+        function testBenchmark(url) {
+            const out = document.getElementById('output');
+            out.innerHTML = "Executing request to '" + url + "'... Please wait...";
+            const startTime = performance.now();
+
+            fetch(url)
+            .then(res => {
+                const latencyHeader = res.headers.get('X-Response-Time-MS');
+                return res.json().then(data => ({ data, latencyHeader }));
+            })
+            .then(item => {
+                const clientMs = Math.round(performance.now() - startTime);
+                out.innerHTML = "STATUS 200 OK!<br>" +
+                    "Execution Mode: <strong>" + item.data.execution_mode + "</strong><br>" +
+                    "Server Latency Header: <span class='metric'>" + item.latencyHeader + "</span><br>" +
+                    "Client Roundtrip Time: " + clientMs + "ms<br><br>" +
+                    "Aggregated Data: " + JSON.stringify(item.data.data, null, 2);
+            });
+        }
+    </script>
+{% endblock %}
