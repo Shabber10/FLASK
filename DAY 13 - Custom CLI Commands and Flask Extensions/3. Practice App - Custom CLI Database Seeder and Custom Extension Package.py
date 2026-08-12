@@ -2,12 +2,15 @@
 ===============================================================================
 Day 13 Practice Script: Custom CLI Commands & Reusable Flask Extension
 ===============================================================================
-This script demonstrates:
-1. Writing a custom reusable Flask extension (`RequestAnalyticsExt`).
-2. Registering custom CLI commands (`seed-users`, `reset-db`, `analytics-report`).
-3. Using Click decorators (`@click.option`, `@click.argument`, `@click.confirm`, `click.style`).
-4. Binding application contexts with `@with_appcontext`.
-5. Exposing a Web UI and REST API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Writing a custom reusable Flask extension (`RequestAnalyticsExt`).
+2. STEP 2: Defining `User(db.Model)`.
+3. STEP 3: Initializing Flask app & binding extensions via `analytics = RequestAnalyticsExt(app)`.
+4. STEP 4: Registering custom CLI commands (`seed-users`, `reset-db`, `analytics-report`) with `@with_appcontext`.
+5. STEP 5: Web UI route handler (`/`) rendering `templates/index.html`.
+6. STEP 6: RESTful JSON API endpoints (`/api/users`).
 
 How to test CLI commands in your terminal:
 ------------------------------------------
@@ -18,7 +21,7 @@ $ python "3. Practice App - Custom CLI Database Seeder and Custom Extension Pack
 
 import time
 import click
-from flask import Flask, jsonify, request, render_template_string, current_app
+from flask import Flask, jsonify, request, render_template, current_app
 from flask.cli import with_appcontext
 from flask_sqlalchemy import SQLAlchemy
 
@@ -27,7 +30,7 @@ db = SQLAlchemy()
 
 
 # =============================================================================
-# 1. Custom Reusable Flask Extension Class
+# STEP 1: Custom Reusable Flask Extension Class
 # =============================================================================
 class RequestAnalyticsExt:
     """Custom extension tracking HTTP request counts and response latency."""
@@ -62,7 +65,7 @@ class RequestAnalyticsExt:
 
 
 # =============================================================================
-# 2. Database Model
+# STEP 2: Database Model Definition
 # =============================================================================
 class User(db.Model):
     __tablename__ = 'users'
@@ -75,7 +78,7 @@ class User(db.Model):
 
 
 # =============================================================================
-# 3. Application Setup & Extension Binding
+# STEP 3: Application Setup & Extension Binding
 # =============================================================================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'day13-cli-extensions-secret'
@@ -91,7 +94,7 @@ with app.app_context():
 
 
 # =============================================================================
-# 4. Custom CLI Commands
+# STEP 4: Custom CLI Commands Registration
 # =============================================================================
 @app.cli.command("seed-users")
 @click.option("--count", default=5, help="Number of sample users to create")
@@ -134,65 +137,25 @@ def analytics_report_cmd():
 
 
 # =============================================================================
-# 5. Web UI & REST API Routes
+# STEP 5 & 6: Web UI & REST API Route Handlers
 # =============================================================================
+
 @app.route('/')
 def home():
+    """Step 5: Web UI dashboard rendering templates/index.html."""
     users = db.session.execute(db.select(User)).scalars().all()
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 13 Custom CLI & Extensions</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 750px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #8e44ad; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>🛠️ Custom CLI Commands & Extension Demo (Day 13)</h2>
-                <p>Custom Extension Active: <span class="badge">RequestAnalyticsExt</span></p>
-
-                <h3>Available Terminal CLI Commands:</h3>
-                <ul>
-                    <li><code>flask seed-users --count 5</code> -> Seeds sample users</li>
-                    <li><code>flask reset-db</code> -> Interactively drops and recreates tables</li>
-                    <li><code>flask analytics-report</code> -> Displays CLI request count report</li>
-                </ul>
-
-                <h3>Live Users in Database ({{ users|length }}):</h3>
-                <table>
-                    <thead><tr><th>ID</th><th>Username</th><th>Email</th></tr></thead>
-                    <tbody>
-                        {% for u in users %}
-                        <tr><td>{{ u.id }}</td><td><strong>{{ u.username }}</strong></td><td>{{ u.email }}</td></tr>
-                        {% else %}
-                        <tr><td colspan="3">No users found. Run <code>flask seed-users</code> in terminal!</td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </body>
-        </html>
-    """, users=users)
+    return render_template('index.html', users=users)
 
 
 @app.route('/api/users')
 def api_users():
+    """Step 6: REST API endpoint returning users as JSON."""
     users = db.session.execute(db.select(User)).scalars().all()
     return jsonify([u.to_dict() for u in users]), 200
 
 
 # =============================================================================
-# 6. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
