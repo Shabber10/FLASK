@@ -2,12 +2,15 @@
 ===============================================================================
 Day 07 Practice Script: Advanced Catalog Search, Filtering & Analytics
 ===============================================================================
-This script demonstrates:
-1. Multi-condition logical query building (`ilike` pattern matching, price ranges).
-2. Dynamic result sorting by multiple attributes.
-3. Pagination execution with `db.paginate()` helper objects.
-4. Aggregations using `sqlalchemy.func` (`count`, `avg`, `max`, `group_by`).
-5. Exposing an interactive search UI and a JSON analytics API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Setting up catalog model (`Product`) and pre-seeding sample data.
+2. STEP 2: Pattern matching (`ilike`) and numerical range filtering (`>=`, `<=`).
+3. STEP 3: Logical operators (`and_`, `or_`, `not_`) and dynamic result sorting (`order_by`).
+4. STEP 4: Paginated query execution using `db.paginate()` helper objects.
+5. STEP 5: SQL aggregations (`func.count`, `func.avg`, `func.max`, `group_by`) via JSON API.
+6. STEP 6 (ADVANCED - OPTIONAL): Nested transactions and savepoints (`db.session.begin_nested()`).
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -15,7 +18,7 @@ How to run this script:
 3. Open your browser and navigate to: http://127.0.0.1:5000/
 """
 
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import or_, and_, func
 
@@ -28,8 +31,9 @@ db = SQLAlchemy(app)
 
 
 # =============================================================================
-# 1. Product ORM Model Definition
+# STEP 1: Product ORM Model Definition & Pre-seeding
 # =============================================================================
+
 class Product(db.Model):
     """ORM Model representing the 'products' database table."""
     __tablename__ = 'products'
@@ -53,7 +57,7 @@ class Product(db.Model):
         }
 
 
-# Initialize DB Tables & Pre-seed Catalog Data
+# Initialize DB Tables & Pre-seed Catalog Data inside app_context
 with app.app_context():
     db.create_all()
     if not db.session.execute(db.select(Product)).scalars().first():
@@ -83,109 +87,14 @@ with app.app_context():
 
 
 # =============================================================================
-# 2. HTML UI Template String
+# STEP 2 & 3 & 4: Search, Filtering, Sorting & Pagination View Handler
 # =============================================================================
-SEARCH_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 07 Catalog Search</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 30px; color: #333; }
-        .card { max-width: 950px; margin: auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-        .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e9ecef; }
-        .filter-bar input, .filter-bar select { padding: 9px; border: 1px solid #ccc; border-radius: 4px; }
-        .btn { background: #2980b9; color: white; border: none; padding: 9px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn:hover { background: #21618c; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 12px; border-bottom: 1px solid #e9ecef; text-align: left; }
-        th { background: #34495e; color: white; }
-        .pagination { display: flex; gap: 5px; margin-top: 20px; justify-content: center; }
-        .page-link { padding: 8px 14px; border: 1px solid #ccc; text-decoration: none; color: #333; border-radius: 4px; font-weight: bold; }
-        .page-link.active { background: #2980b9; color: white; border-color: #2980b9; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🔍 Product Catalog Search & Filtering (Day 07)</h2>
 
-        <!-- Search & Filter Controls -->
-        <form class="filter-bar" method="GET" action="/">
-            <input type="text" name="q" placeholder="Search product name..." value="{{ query_params.q or '' }}">
-            <select name="category">
-                <option value="">All Categories</option>
-                {% for cat in categories %}
-                    <option value="{{ cat }}" {% if query_params.category == cat %}selected{% endif %}>{{ cat }}</option>
-                {% endfor %}
-            </select>
-            <input type="number" step="0.01" name="min_price" placeholder="Min $" value="{{ query_params.min_price or '' }}">
-            <input type="number" step="0.01" name="max_price" placeholder="Max $" value="{{ query_params.max_price or '' }}">
-            <select name="sort">
-                <option value="name_asc" {% if query_params.sort == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
-                <option value="price_asc" {% if query_params.sort == 'price_asc' %}selected{% endif %}>Price (Low -> High)</option>
-                <option value="price_desc" {% if query_params.sort == 'price_desc' %}selected{% endif %}>Price (High -> Low)</option>
-                <option value="rating_desc" {% if query_params.sort == 'rating_desc' %}selected{% endif %}>Rating (Highest First)</option>
-            </select>
-            <button class="btn" type="submit">Filter Products</button>
-        </form>
-
-        <p>Showing Page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> (Total Results: {{ pagination.total }})</p>
-
-        <!-- Product Results Table -->
-        <table>
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Product Name</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Rating</th>
-                    <th>Stock</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for p in pagination.items %}
-                <tr>
-                    <td>{{ p.id }}</td>
-                    <td><strong>{{ p.name }}</strong></td>
-                    <td>{{ p.category }}</td>
-                    <td>${{ "%.2f"|format(p.price) }}</td>
-                    <td>⭐ {{ p.rating }}</td>
-                    <td>{{ p.stock }} units</td>
-                </tr>
-                {% else %}
-                <tr><td colspan="6">No products match specified search criteria.</td></tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <!-- Pagination Controls -->
-        <div class="pagination">
-            {% if pagination.has_prev %}
-                <a class="page-link" href="{{ url_for('index', page=pagination.prev_num, **query_params) }}">&laquo; Prev</a>
-            {% endif %}
-
-            {% for page_num in range(1, pagination.pages + 1) %}
-                <a class="page-link {% if page_num == pagination.page %}active{% endif %}" href="{{ url_for('index', page=page_num, **query_params) }}">{{ page_num }}</a>
-            {% endfor %}
-
-            {% if pagination.has_next %}
-                <a class="page-link" href="{{ url_for('index', page=pagination.next_num, **query_params) }}">Next &raquo;</a>
-            {% endif %}
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-
-# =============================================================================
-# 3. Route Handlers
-# =============================================================================
 @app.route('/')
 def index():
-    """Renders catalog search UI with dynamic filtering and pagination."""
+    """
+    Renders catalog search UI using templates/products.html with dynamic filtering and pagination.
+    """
     # Parse URL Query Parameters
     q = request.args.get('q', '', type=str).strip()
     category = request.args.get('category', '', type=str).strip()
@@ -197,7 +106,7 @@ def index():
     # 1. Base Select Query Statement
     stmt = db.select(Product)
 
-    # 2. Dynamically Append Filters
+    # 2. Step 2: Dynamically Append Filters
     if q:
         # Case-insensitive partial pattern match
         stmt = stmt.where(Product.name.ilike(f"%{q}%"))
@@ -208,7 +117,7 @@ def index():
     if max_price is not None:
         stmt = stmt.where(Product.price <= max_price)
 
-    # 3. Apply Dynamic Sorting Rules
+    # 3. Step 3: Apply Dynamic Sorting Rules
     if sort_by == 'price_asc':
         stmt = stmt.order_by(Product.price.asc())
     elif sort_by == 'price_desc':
@@ -218,7 +127,7 @@ def index():
     else:
         stmt = stmt.order_by(Product.name.asc())
 
-    # 4. Execute Paginated Query (5 items per page)
+    # 4. Step 4: Execute Paginated Query (5 items per page)
     pagination = db.paginate(stmt, page=page, per_page=5, error_out=False)
 
     # 5. Fetch Distinct Categories for Filter Dropdown
@@ -227,12 +136,18 @@ def index():
 
     query_params = {"q": q, "category": category, "min_price": min_price, "max_price": max_price, "sort": sort_by}
 
-    return render_template_string(SEARCH_HTML, pagination=pagination, categories=categories, query_params=query_params)
+    return render_template('products.html', pagination=pagination, categories=categories, query_params=query_params)
 
+
+# =============================================================================
+# STEP 5: SQL Aggregations & Analytics API
+# =============================================================================
 
 @app.route('/api/stats')
 def category_stats_api():
-    """API Endpoint demonstrating SQL Aggregations and GROUP BY using func."""
+    """
+    Step 5: API Endpoint demonstrating SQL Aggregations and GROUP BY using func.
+    """
     stmt = db.select(
         Product.category,
         func.count(Product.id).label('total_products'),
@@ -255,9 +170,31 @@ def category_stats_api():
 
 
 # =============================================================================
-# 4. Main Entrypoint
+# STEP 6 (OPTIONAL / ADVANCED): Savepoints & Nested Transactions Demo
+# =============================================================================
+
+def run_savepoint_demo():
+    """Demonstrates creating savepoints with db.session.begin_nested()"""
+    with app.app_context():
+        try:
+            # Savepoint (Nested Transaction Checkpoint)
+            savepoint = db.session.begin_nested()
+            temp_p = Product(name="Temp Test Item", category="Electronics", price=1.0)
+            db.session.add(temp_p)
+            db.session.flush()
+            # Rollback only to savepoint
+            savepoint.rollback()
+            db.session.commit()
+            print("✅ Savepoint demo executed successfully (temp item rolled back).")
+        except Exception as e:
+            db.session.rollback()
+
+
+# =============================================================================
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
+    run_savepoint_demo()
     print("=" * 75)
     print("🚀 Starting Day 07 Advanced Catalog Application...")
     print("🌐 Search UI at: http://127.0.0.1:5000/")

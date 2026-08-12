@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Product Catalog Search & Filtering - Day 07{% endblock %}
+
+{% block content %}
+    <h2>🔍 Product Catalog Search & Filtering (Day 07)</h2>
+    <p style="color: #7f8c8d; font-size: 0.9em;">
+        🔍 Demonstrating <code>ILIKE</code> pattern matching, multi-field filtering, dynamic <code>order_by</code>, and paginated <code>db.paginate()</code> rendering.
+    </p>
+
+    <!-- Search & Filter Controls -->
+    <form class="filter-bar" method="GET" action="/">
+        <input type="text" name="q" placeholder="Search product name..." value="{{ query_params.q or '' }}">
+        <select name="category">
+            <option value="">All Categories</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}" {% if query_params.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <input type="number" step="0.01" name="min_price" placeholder="Min $" value="{{ query_params.min_price or '' }}">
+        <input type="number" step="0.01" name="max_price" placeholder="Max $" value="{{ query_params.max_price or '' }}">
+        <select name="sort">
+            <option value="name_asc" {% if query_params.sort == 'name_asc' %}selected{% endif %}>Name (A-Z)</option>
+            <option value="price_asc" {% if query_params.sort == 'price_asc' %}selected{% endif %}>Price (Low -> High)</option>
+            <option value="price_desc" {% if query_params.sort == 'price_desc' %}selected{% endif %}>Price (High -> Low)</option>
+            <option value="rating_desc" {% if query_params.sort == 'rating_desc' %}selected{% endif %}>Rating (Highest First)</option>
+        </select>
+        <button class="btn" type="submit">Filter Products</button>
+    </form>
+
+    <p>Showing Page <strong>{{ pagination.page }}</strong> of <strong>{{ pagination.pages }}</strong> (Total Results: {{ pagination.total }})</p>
+
+    <!-- Product Results Table -->
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Product Name</th>
+                <th>Category</th>
+                <th>Price</th>
+                <th>Rating</th>
+                <th>Stock</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in pagination.items %}
+            <tr>
+                <td>{{ p.id }}</td>
+                <td><strong>{{ p.name }}</strong></td>
+                <td>{{ p.category }}</td>
+                <td>${{ "%.2f"|format(p.price) }}</td>
+                <td>⭐ {{ p.rating }}</td>
+                <td>{{ p.stock }} units</td>
+            </tr>
+            {% else %}
+            <tr><td colspan="6">No products match specified search criteria.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        {% if pagination.has_prev %}
+            <a class="page-link" href="{{ url_for('index', page=pagination.prev_num, **query_params) }}">&laquo; Prev</a>
+        {% endif %}
+
+        {% for page_num in range(1, pagination.pages + 1) %}
+            <a class="page-link {% if page_num == pagination.page %}active{% endif %}" href="{{ url_for('index', page=page_num, **query_params) }}">{{ page_num }}</a>
+        {% endfor %}
+
+        {% if pagination.has_next %}
+            <a class="page-link" href="{{ url_for('index', page=pagination.next_num, **query_params) }}">Next &raquo;</a>
+        {% endif %}
+    </div>
+{% endblock %}
