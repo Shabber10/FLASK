@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}JWT Auth Server Dashboard - Day 19{% endblock %}
+
+{% block content %}
+    <p>Authentication Engine: <span class="badge">Flask-JWT-Extended</span></p>
+
+    <h3>Pre-seeded Login Accounts:</h3>
+    <ul>
+        <li>Username: <code>alice_dev</code> | Password: <code>DevPass123!</code></li>
+        <li>Username: <code>admin_boss</code> | Password: <code>AdminPass123!</code></li>
+    </ul>
+
+    <h3>Available Endpoints:</h3>
+    <table>
+        <thead><tr><th>Verb</th><th>Endpoint</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>Issue Access & Refresh Token Pair</td></tr>
+            <tr><td><code>POST</code></td><td><code>/api/v1/auth/refresh</code></td><td>Generate new Access Token using Refresh Token</td></tr>
+            <tr><td><code>GET</code></td><td><code>/api/v1/profile</code></td><td>Protected Profile (Requires <code>Authorization: Bearer &lt;access_token&gt;</code>)</td></tr>
+            <tr><td><code>POST</code></td><td><code>/api/v1/auth/logout</code></td><td>Revoke Token JTI in Blocklist</td></tr>
+        </tbody>
+    </table>
+{% endblock %}

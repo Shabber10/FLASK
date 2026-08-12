@@ -2,13 +2,15 @@
 ===============================================================================
 Day 19 Practice Script: Complete JWT Auth Server with Refresh & Blacklisting
 ===============================================================================
-This script demonstrates:
-1. Configuring `Flask-JWT-Extended` with Access & Refresh Token Lifespans.
-2. Issuing token pairs upon user login (`POST /api/v1/auth/login`).
-3. Protecting API endpoints (`GET /api/v1/profile`) with `@jwt_required()`.
-4. Refreshing access tokens (`POST /api/v1/auth/refresh`) with `@jwt_required(refresh=True)`.
-5. Revoking tokens on logout via `jti` tracking (`@jwt.token_in_blocklist_loader`).
-6. Interactive JWT Token Tester Portal UI and REST API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Configuring `Flask-JWT-Extended` with Access & Refresh Token Lifespans.
+2. STEP 2: Defining JWT Callbacks & Error Handlers (`@jwt.token_in_blocklist_loader`).
+3. STEP 3: Initializing in-memory database with salted password hashes (`generate_password_hash`).
+4. STEP 4: Auth Endpoints (`login` token pair, `refresh` access token, `logout` JTI blocklisting).
+5. STEP 5: Protected API Profile endpoint (`GET /api/v1/profile`) with `@jwt_required()`.
+6. STEP 6: Interactive JWT Token Tester Portal UI rendering `templates/index.html`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -17,7 +19,7 @@ How to run this script:
 """
 
 from datetime import timedelta
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
     jwt_required, get_jwt_identity, get_jwt
@@ -27,7 +29,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 # =============================================================================
-# 1. JWT Configuration Settings
+# STEP 1: JWT Configuration Settings
 # =============================================================================
 app.config['SECRET_KEY'] = 'day19-jwt-masterclass-secret'
 app.config['JWT_SECRET_KEY'] = 'jwt-signing-secret-key-32bytes'
@@ -36,7 +38,10 @@ app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
 
 jwt = JWTManager(app)
 
-# In-Memory Database & JTI Token Revocation Blocklist Set
+
+# =============================================================================
+# STEP 3: In-Memory Database & JTI Token Revocation Blocklist Set
+# =============================================================================
 users_db = {
     "alice_dev": {"id": 101, "password": generate_password_hash("DevPass123!"), "role": "Developer"},
     "admin_boss": {"id": 102, "password": generate_password_hash("AdminPass123!"), "role": "Admin"}
@@ -45,11 +50,11 @@ jwt_blocklist = set()
 
 
 # =============================================================================
-# 2. JWT Callbacks & Error Handlers
+# STEP 2: JWT Callbacks & Error Handlers
 # =============================================================================
 @jwt.token_in_blocklist_loader
 def check_if_token_revoked(jwt_header, jwt_payload):
-    """Callback executing on every request to verify if JTI is blacklisted."""
+    """Step 2a: Callback executing on every request to verify if JTI is blacklisted."""
     jti = jwt_payload['jti']
     return jti in jwt_blocklist
 
@@ -73,12 +78,13 @@ def missing_token_callback(error):
 
 
 # =============================================================================
-# 3. REST API Authentication Endpoints
+# STEP 4: REST API Authentication Endpoints (Login, Refresh, Logout)
 # =============================================================================
 
 # POST /api/v1/auth/login -> Issues Access + Refresh Token Pair
 @app.route('/api/v1/auth/login', methods=['POST'])
 def login():
+    """Step 4a: Validates credentials and returns Access + Refresh Token Pair."""
     data = request.get_json() or {}
     username = data.get('username')
     password = data.get('password')
@@ -105,9 +111,9 @@ def login():
 @app.route('/api/v1/auth/refresh', methods=['POST'])
 @jwt_required(refresh=True)  # Requires valid Refresh Token in Authorization header!
 def refresh_access_token():
+    """Step 4b: Generates a new 15-minute Access Token using Refresh Token."""
     current_user_id = get_jwt_identity()
     
-    # Generate new Access Token
     new_access_token = create_access_token(identity=current_user_id)
     return jsonify({
         "status": "success",
@@ -120,6 +126,7 @@ def refresh_access_token():
 @app.route('/api/v1/auth/logout', methods=['POST'])
 @jwt_required()
 def logout():
+    """Step 4c: Adds active token JTI UUID to revocation blocklist set."""
     jti = get_jwt()['jti']
     jwt_blocklist.add(jti)  # Blacklist JTI
     return jsonify({
@@ -128,10 +135,13 @@ def logout():
     }), 200
 
 
-# GET /api/v1/profile -> Protected API resource endpoint
+# =============================================================================
+# STEP 5: Protected API Resource Endpoint
+# =============================================================================
 @app.route('/api/v1/profile', methods=['GET'])
 @jwt_required()  # Requires valid non-revoked Access Token!
 def get_profile():
+    """Step 5: Returns protected user profile info from Bearer token claims."""
     user_id = get_jwt_identity()
     claims = get_jwt()
     
@@ -147,56 +157,16 @@ def get_profile():
 
 
 # =============================================================================
-# 4. Interactive Web UI Tester Portal
+# STEP 6: Interactive Web UI Tester Dashboard Route Handler (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 19 JWT Authentication Server</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 750px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>🔑 JWT Authentication & Token Revocation Server (Day 19)</h2>
-                <p>Authentication Engine: <span class="badge">Flask-JWT-Extended</span></p>
-
-                <h3>Pre-seeded Login Accounts:</h3>
-                <ul>
-                    <li>Username: <code>alice_dev</code> | Password: <code>DevPass123!</code></li>
-                    <li>Username: <code>admin_boss</code> | Password: <code>AdminPass123!</code></li>
-                </ul>
-
-                <h3>Available Endpoints:</h3>
-                <table>
-                    <thead><tr><th>Verb</th><th>Endpoint</th><th>Description</th></tr></thead>
-                    <tbody>
-                        <tr><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>Issue Access & Refresh Token Pair</td></tr>
-                        <tr><td><code>POST</code></td><td><code>/api/v1/auth/refresh</code></td><td>Generate new Access Token using Refresh Token</td></tr>
-                        <tr><td><code>GET</code></td><td><code>/api/v1/profile</code></td><td>Protected Profile (Requires <code>Authorization: Bearer &lt;access_token&gt;</code>)</td></tr>
-                        <tr><td><code>POST</code></td><td><code>/api/v1/auth/logout</code></td><td>Revoke Token JTI in Blocklist</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 6: Renders templates/index.html dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
