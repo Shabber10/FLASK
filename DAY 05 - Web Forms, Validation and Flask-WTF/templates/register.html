@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Flask-WTF Registration & File Upload{% endblock %}
+
+{% block content %}
+    <h2>🚀 User Registration & Avatar Upload (Flask-WTF)</h2>
+    <p style="color: #27ae60; font-size: 0.9em;">
+        🛡️ Protected by Flask-WTF Anti-CSRF Cryptographic Tokens & Automated Field Validation.
+    </p>
+
+    <form method="POST" enctype="multipart/form-data">
+        <!-- Hidden Anti-CSRF Security Token -->
+        {{ form.csrf_token }}
+
+        <div class="form-group">
+            {{ form.username.label }}
+            {{ form.username() }}
+            {% for err in form.username.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.email.label }}
+            {{ form.email() }}
+            {% for err in form.email.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.password.label }}
+            {{ form.password() }}
+            {% for err in form.password.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.confirm_password.label }}
+            {{ form.confirm_password() }}
+            {% for err in form.confirm_password.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
+        </div>
+
+        <div class="form-group">
+            {{ form.avatar.label }}
+            {{ form.avatar() }}
+            {% for err in form.avatar.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
+        </div>
+
+        {{ form.submit(class="btn") }}
+    </form>
+
+    <p style="margin-top: 20px;"><a href="/raw-login">See Step 1: Raw HTML Form (Manual Parsing) →</a></p>
+{% endblock %}

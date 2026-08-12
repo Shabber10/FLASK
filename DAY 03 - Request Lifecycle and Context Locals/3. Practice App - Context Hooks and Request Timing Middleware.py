@@ -1,13 +1,17 @@
 """
 ===============================================================================
-Day 03 Practice Script: Context Hooks & Request Lifecycle Management
+Day 03 Practice Script: Context Locals, Request Lifecycle & Hooks
 ===============================================================================
-This script demonstrates:
-1. Managing in-memory request-scoped data and database connections on `g`.
-2. Tracking HTTP request latency via `@app.before_request` and `@app.after_request`.
-3. Ensuring guaranteed database cleanup with `@app.teardown_request`.
-4. Injecting global variables into Jinja2 templates via `@app.context_processor`.
-5. Manually pushing application & request contexts in standalone scripts.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Understanding `g` (The Request Backpack) - Storing temporary request data.
+2. STEP 2: Request timing & short-circuiting with `@app.before_request`.
+3. STEP 3: Modifying outgoing HTTP responses with `@app.after_request`.
+4. STEP 4: Guaranteed resource cleanup with `@app.teardown_request`.
+5. STEP 5: Injecting global variables into templates with `@app.context_processor`.
+6. STEP 6: Standalone context pushing (`app.app_context()`, `app.test_request_context()`).
+7. STEP 7 (ADVANCED - OPTIONAL): Mock Database connection driver pattern.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -20,97 +24,18 @@ from datetime import datetime
 from flask import Flask, g, request, jsonify, render_template_string, current_app
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'day03-lifecycle-secret'
+app.config['SECRET_KEY'] = 'day03-pure-basics-key'
 app.config['SITE_NAME'] = 'Enterprise Flask Platform'
 
 
 # =============================================================================
-# 1. Simulated Database Connection Class
+# STEP 1: Understanding `g` (The Request Backpack) & Basic Routes
 # =============================================================================
-class MockDatabaseConnection:
-    """Simulates a real database driver connection."""
-    def __init__(self):
-        self.connected_at = time.time()
-        self.is_closed = False
-        print(f"🔌 [DB ENGINE] Connection opened at {self.connected_at}")
 
-    def query(self, sql):
-        if self.is_closed:
-            raise RuntimeError("Cannot query on a closed database connection!")
-        return f"Results for query '{sql}'"
-
-    def close(self):
-        self.is_closed = True
-        print("🔒 [DB ENGINE] Connection closed safely.")
-
-
-# =============================================================================
-# 2. Lifecycle Hooks
-# =============================================================================
-@app.before_request
-def setup_request():
-    """
-    Executes BEFORE every request:
-    1. Records request start time on g.
-    2. Initializes a mock DB connection on g.
-    3. Generates a unique request ID on g.
-    """
-    g.start_time = time.time()
-    g.db = MockDatabaseConnection()
-    g.request_id = f"REQ-{int(g.start_time * 1000)}"
-    print(f"--> [HOOK: before_request] {request.method} {request.path} | ID: {g.request_id}")
-
-
-@app.after_request
-def audit_response(response):
-    """
-    Executes AFTER view function returns:
-    Calculates execution duration and attaches audit headers to response.
-    """
-    if hasattr(g, 'start_time'):
-        latency_ms = round((time.time() - g.start_time) * 1000, 2)
-        response.headers['X-Request-Duration-MS'] = str(latency_ms)
-        response.headers['X-Request-ID'] = getattr(g, 'request_id', 'N/A')
-        print(f"<-- [HOOK: after_request] Status: {response.status} | Latency: {latency_ms}ms")
-    return response
-
-
-@app.teardown_request
-def teardown_resources(exception=None):
-    """
-    Guaranteed execution AFTER request finishes:
-    Safely closes the database connection stored on g (even if errors occurred).
-    """
-    if exception:
-        print(f"⚠️ [HOOK: teardown_request] Request raised Exception: {exception}")
-    
-    db = g.pop('db', None)
-    if db is not None:
-        db.close()
-    print("--- [HOOK: teardown_request] Context Tear Down Complete.\n")
-
-
-# =============================================================================
-# 3. Context Processor
-# =============================================================================
-@app.context_processor
-def inject_global_vars():
-    """Injects site metadata automatically into all Jinja2 templates."""
-    return {
-        'platform_name': current_app.config['SITE_NAME'],
-        'current_year': datetime.now().year,
-        'server_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    }
-
-
-# =============================================================================
-# 4. View Functions (Routes)
-# =============================================================================
 @app.route('/')
-def index():
+def home():
     """
-    Route 1: HTML Home Page
-    Renders Jinja2 template using global context processor variables and g.db.
+    Step 1: Basic Route accessing `g` data initialized by hooks.
     """
     html_template = """
     <!DOCTYPE html>
@@ -128,9 +53,10 @@ def index():
         <div class="card">
             <h1>🚀 Welcome to {{ platform_name }}</h1>
             <p>Server Time: <strong>{{ server_time }}</strong></p>
-            <p>Database Query Test: <code>{{ db_result }}</code></p>
+            <p>Current Request ID (from <code>g</code>): <code>{{ request_id }}</code></p>
             <ul>
-                <li><a href="/api/status">Inspect Request Context Data (<code>/api/status</code>)</a></li>
+                <li><a href="/api/status">Inspect Request Context API (<code>/api/status</code>)</a></li>
+                <li><a href="/admin/dashboard">Protected Admin Route Test (<code>/admin/dashboard</code>)</a></li>
                 <li><a href="/trigger-error">Test Teardown Exception Cleanup (<code>/trigger-error</code>)</a></li>
             </ul>
         </div>
@@ -138,43 +64,152 @@ def index():
     </body>
     </html>
     """
-    query_data = g.db.query("SELECT * FROM active_users")
-    return render_template_string(html_template, db_result=query_data)
+    req_id = getattr(g, 'request_id', 'UNKNOWN')
+    return render_template_string(html_template, request_id=req_id)
 
 
-@app.route('/api/status')
-def status_api():
-    """Route 2: API Endpoint returning g context data as JSON."""
-    return jsonify({
-        "status": "online",
-        "request_id": g.request_id,
-        "db_connected_at": g.db.connected_at
-    }), 200
+# =============================================================================
+# STEP 2: `@app.before_request` (Timing & Short-Circuiting Auth Check)
+# =============================================================================
+
+@app.before_request
+def setup_request_and_security():
+    """
+    Executes BEFORE every request view function:
+    1. Records start timestamp on `g`.
+    2. Generates a unique request ID on `g`.
+    3. Short-circuits unauthorized access to /admin routes.
+    """
+    g.start_time = time.time()
+    g.request_id = f"REQ-{int(g.start_time * 1000)}"
+    print(f"--> [HOOK: before_request] {request.method} {request.path} | ID: {g.request_id}")
+
+    # Short-Circuiting Security Check:
+    if request.path.startswith('/admin'):
+        auth_header = request.headers.get('Authorization')
+        if auth_header != 'Bearer secret-admin-key':
+            print("🛑 [SECURITY] Access denied! Short-circuiting request.")
+            return jsonify({
+                "error": "Unauthorized",
+                "message": "Missing or invalid admin authorization header."
+            }), 401
+
+
+@app.route('/admin/dashboard')
+def admin_dashboard():
+    """
+    Protected route: Only runs if before_request does NOT short-circuit!
+    """
+    return jsonify({"status": "access_granted", "dashboard": "Secret Admin Control Panel"}), 200
+
+
+# =============================================================================
+# STEP 3: `@app.after_request` (Modifying Outgoing Responses)
+# =============================================================================
+
+@app.after_request
+def audit_and_add_headers(response):
+    """
+    Executes AFTER view function finishes:
+    Calculates execution duration and attaches security/audit headers.
+    """
+    if hasattr(g, 'start_time'):
+        duration_ms = round((time.time() - g.start_time) * 1000, 2)
+        response.headers['X-Request-Duration-MS'] = str(duration_ms)
+        response.headers['X-Request-ID'] = getattr(g, 'request_id', 'N/A')
+        print(f"<-- [HOOK: after_request] Status: {response.status} | Latency: {duration_ms}ms")
+    return response
+
+
+# =============================================================================
+# STEP 4: `@app.teardown_request` (Guaranteed Resource Cleanup)
+# =============================================================================
+
+@app.teardown_request
+def cleanup_resources(exception=None):
+    """
+    Guaranteed execution AFTER response is sent (runs even if app crashes!).
+    """
+    if exception:
+        print(f"⚠️ [HOOK: teardown_request] Request failed with exception: {exception}")
+    print("--- [HOOK: teardown_request] Request context teardown complete.\n")
 
 
 @app.route('/trigger-error')
 def trigger_error():
-    """Route 3: Error Endpoint demonstrating teardown execution during exceptions."""
+    """
+    Demonstrates teardown_request executing even when an unhandled error occurs!
+    """
     raise ValueError("Simulated unexpected application error!")
 
 
 # =============================================================================
-# 5. Main Entrypoint & Context Manual Push Demo
+# STEP 5: `@app.context_processor` (Global Template Injection)
 # =============================================================================
-if __name__ == '__main__':
+
+@app.context_processor
+def inject_global_template_vars():
+    """
+    Injects variables automatically into ALL Jinja2 templates across the app.
+    """
+    return {
+        'platform_name': current_app.config['SITE_NAME'],
+        'current_year': datetime.now().year,
+        'server_time': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+
+@app.route('/api/status')
+def status_api():
+    """
+    Step 5 API Route returning status data.
+    """
+    return jsonify({
+        "status": "online",
+        "request_id": getattr(g, 'request_id', 'N/A')
+    }), 200
+
+
+# =============================================================================
+# STEP 6: Standalone Context Pushing Demo (`app_context` & `test_request_context`)
+# =============================================================================
+
+def run_context_push_demo():
     print("=" * 75)
     print("Testing Standalone Context Pushing in Scripts...")
     
-    # 1. Manually Pushing Application Context
+    # 1. Pushing Application Context manually (for background scripts/CLI)
     with app.app_context():
         print(f"✅ Manually Pushed App Context: {current_app.config['SITE_NAME']}")
         
-    # 2. Manually Pushing Request Context
+    # 2. Pushing Request Context manually (for unit tests)
     with app.test_request_context('/api/status?format=json'):
-        print(f"✅ Manually Pushed Request Context: {request.path} | Query: {request.args}")
-        
+        print(f"✅ Manually Pushed Request Context: {request.path} | Query: {request.args.to_dict()}")
     print("=" * 75)
-    print("🚀 Starting Day 03 Practice Application...")
+
+
+# =============================================================================
+# STEP 7 (OPTIONAL / ADVANCED): Mock Database Connection Driver
+# =============================================================================
+# NOTE FOR BEGINNERS: Real database integration with SQLAlchemy will be covered in Day 06!
+
+class MockDatabaseConnection:
+    def __init__(self):
+        self.connected_at = time.time()
+        print(f"🔌 [DB ENGINE] Connection opened at {self.connected_at}")
+
+    def close(self):
+        print("🔒 [DB ENGINE] Connection closed safely.")
+
+
+# =============================================================================
+# Main Entrypoint
+# =============================================================================
+if __name__ == '__main__':
+    # Run context push demo first
+    run_context_push_demo()
+
+    print("🚀 Starting Day 03 Pure Basics Flask Application...")
     print("🌐 Open browser at: http://127.0.0.1:5000/")
     print("=" * 75)
     app.run(host='127.0.0.1', port=5000, debug=True)

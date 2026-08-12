@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 05 Form & File Upload Masterclass{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 0; padding: 40px; }
+        .card { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
+        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
+        .error-msg { color: #e74c3c; font-size: 0.85em; margin-top: 4px; font-weight: bold; }
+        .btn { background: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; width: 100%; font-weight: bold; }
+        .btn:hover { background: #2980b9; }
+        .alert { padding: 12px; margin-bottom: 20px; border-radius: 5px; color: white; font-weight: bold; }
+        .alert-success { background: #2ecc71; }
+        .alert-danger { background: #e74c3c; }
+        .alert-warning { background: #f39c12; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        <!-- Render Categorized Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Raw HTML Form Demo{% endblock %}
+
+{% block content %}
+    <h2>Step 1: Raw HTML Form (Manual Request Parsing)</h2>
+    <p style="color: #7f8c8d; font-size: 0.9em;">
+        ⚠️ Notice: This raw form has NO anti-CSRF token and requires manual Python validation!
+    </p>
+
+    <form method="POST" action="/raw-login">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="e.g. admin">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password">
+        </div>
+
+        <button type="submit" class="btn">Submit Raw Form</button>
+    </form>
+    
+    <p style="margin-top: 20px;"><a href="/">← Go to Flask-WTF Registration Form</a></p>
+{% endblock %}

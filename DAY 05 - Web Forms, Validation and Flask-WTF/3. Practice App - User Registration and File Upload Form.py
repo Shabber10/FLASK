@@ -1,13 +1,16 @@
 """
 ===============================================================================
-Day 05 Practice Script: User Registration & Secure File Upload System
+Day 05 Practice Script: Web Forms, Validation & File Upload System
 ===============================================================================
-This script demonstrates:
-1. Defining WTForms forms with built-in and custom validators.
-2. In-line field validation for reserved username enforcement.
-3. Reusable standalone validator functions for strong password policies.
-4. Enforcing file upload security (extensions, file size limits, secure_filename).
-5. CSRF protection and categorized flash message rendering.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Raw HTML form submission (`request.form.get()`) to demonstrate why manual forms lack CSRF security.
+2. STEP 2: Basic Flask-WTF form (`LoginForm`) demonstrating automatic CSRF protection.
+3. STEP 3: Full Registration form with built-in validators (`DataRequired`, `Email`, `Length`, `EqualTo`).
+4. STEP 4: Custom validators (In-line `validate_username` & standalone `ComplexPassword`).
+5. STEP 5: Secure file uploads (`FileField`, `FileAllowed`, `secure_filename`, `MAX_CONTENT_LENGTH`).
+6. STEP 6: Rendering categorized flash messages.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +19,7 @@ How to run this script:
 """
 
 import os
-from flask import Flask, render_template_string, flash, redirect, url_for, request
+from flask import Flask, render_template, flash, redirect, url_for, request
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileRequired, FileAllowed
 from wtforms import StringField, PasswordField, SubmitField
@@ -24,7 +27,7 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo, ValidationE
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-# Cryptographic secret key required for Flask-WTF CSRF token generation
+# Secret key required by Flask-WTF for CSRF token generation
 app.config['SECRET_KEY'] = 'day05-csrf-protection-secret-key-30-days'
 
 # Enforce Maximum 5 Megabytes File Upload Limit
@@ -36,8 +39,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
 # =============================================================================
-# 1. Custom Standalone Reusable Password Validator Factory
+# STEP 4: Custom Standalone Reusable Password Validator Factory
 # =============================================================================
+
 def ComplexPassword(min_length=8):
     """Factory function returning a custom validator enforcing password strength."""
     def _validator(form, field):
@@ -52,10 +56,18 @@ def ComplexPassword(min_length=8):
 
 
 # =============================================================================
-# 2. Registration & Upload Form Definition
+# STEP 2 & 3: Flask-WTF Form Definitions
 # =============================================================================
+
+class SimpleLoginForm(FlaskForm):
+    """Step 2: Basic Flask-WTF Form with automatic CSRF protection."""
+    username = StringField('Username', validators=[DataRequired()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    submit = SubmitField('Log In')
+
+
 class RegistrationUploadForm(FlaskForm):
-    """WTForms class representing the User Registration and Avatar Upload form."""
+    """Step 3 & 4 & 5: Full Registration and Avatar Upload Form."""
     
     username = StringField('Username', validators=[
         DataRequired(message="Username is required."),
@@ -84,7 +96,7 @@ class RegistrationUploadForm(FlaskForm):
     
     submit = SubmitField('Complete Registration')
 
-    # In-line Custom Validator for Username
+    # Step 4: In-line Custom Validator for Username
     def validate_username(self, field):
         """Executed automatically when validating the username field."""
         forbidden = ['admin', 'root', 'superuser', 'administrator', 'system']
@@ -93,99 +105,47 @@ class RegistrationUploadForm(FlaskForm):
 
 
 # =============================================================================
-# 3. HTML Template String
+# STEP 1: Raw HTML Form Route Handler (Manual Parsing)
 # =============================================================================
-TEMPLATE_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 05 Form & File Upload Masterclass</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 0; padding: 40px; }
-        .card { max-width: 550px; margin: auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h2 { color: #2c3e50; margin-top: 0; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; font-weight: bold; margin-bottom: 5px; color: #34495e; }
-        input[type="text"], input[type="password"], input[type="file"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 5px; }
-        .error-msg { color: #e74c3c; font-size: 0.85em; margin-top: 4px; font-weight: bold; }
-        .btn { background: #3498db; color: white; padding: 12px 20px; border: none; border-radius: 5px; font-size: 1em; cursor: pointer; width: 100%; font-weight: bold; }
-        .btn:hover { background: #2980b9; }
-        .alert { padding: 12px; margin-bottom: 20px; border-radius: 5px; color: white; font-weight: bold; }
-        .alert-success { background: #2ecc71; }
-        .alert-danger { background: #e74c3c; }
-        .alert-warning { background: #f39c12; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🚀 User Registration & Avatar Upload</h2>
 
-        <!-- Render Categorized Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% for category, message in messages %}
-              <div class="alert alert-{{ category }}">{{ message }}</div>
-            {% endfor %}
-          {% endif %}
-        {% endwith %}
-
-        <!-- Form must use POST method and multipart/form-data for file uploads -->
-        <form method="POST" enctype="multipart/form-data">
-            <!-- Hidden Anti-CSRF Security Token -->
-            {{ form.csrf_token }}
-
-            <div class="form-group">
-                {{ form.username.label }}
-                {{ form.username() }}
-                {% for err in form.username.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                {{ form.email.label }}
-                {{ form.email() }}
-                {% for err in form.email.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                {{ form.password.label }}
-                {{ form.password() }}
-                {% for err in form.password.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                {{ form.confirm_password.label }}
-                {{ form.confirm_password() }}
-                {% for err in form.confirm_password.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
-            </div>
-
-            <div class="form-group">
-                {{ form.avatar.label }}
-                {{ form.avatar() }}
-                {% for err in form.avatar.errors %}<div class="error-msg">{{ err }}</div>{% endfor %}
-            </div>
-
-            {{ form.submit(class="btn") }}
-        </form>
-    </div>
-</body>
-</html>
-"""
+@app.route('/raw-login', methods=['GET', 'POST'])
+def raw_login():
+    """
+    Step 1: Demonstrating Raw HTML form handling via request.form.get()
+    Notice how manual validation requires multiple if/else statements and lacks CSRF tokens!
+    """
+    if request.method == 'POST':
+        uname = request.form.get('username')
+        pwd = request.form.get('password')
+        
+        # Manual Validation Logic
+        if not uname or not pwd:
+            flash("Manual Validation Error: Both username and password are required!", "danger")
+        elif uname == 'admin':
+            flash("Logged in successfully via Raw HTML Form!", "success")
+            return redirect(url_for('raw_login'))
+        else:
+            flash(f"User '{uname}' submitted raw form.", "warning")
+            
+    return render_template('raw_login.html')
 
 
 # =============================================================================
-# 4. Route Handlers
+# STEP 3 & 5: Flask-WTF Registration & File Upload Handler
 # =============================================================================
+
 @app.route('/', methods=['GET', 'POST'])
 def register():
-    """Form view handler processing registration and secure file uploads."""
+    """
+    Form view handler processing registration and secure file uploads using Flask-WTF.
+    """
     form = RegistrationUploadForm()
     
     # Executes ONLY when request is POST and form data + CSRF token are valid
     if form.validate_on_submit():
         file_obj = form.avatar.data
         
-        # Sanitize filename to prevent Directory Traversal attacks (../etc/passwd)
+        # Step 5: Sanitize filename to prevent Directory Traversal attacks (../etc/passwd)
         filename = secure_filename(file_obj.filename)
         save_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         file_obj.save(save_path)
@@ -195,11 +155,11 @@ def register():
     elif request.method == 'POST':
         flash("Form validation failed. Please correct the highlighted errors below.", "danger")
         
-    return render_template_string(TEMPLATE_HTML, form=form)
+    return render_template('register.html', form=form)
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
