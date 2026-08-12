@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Application Caching Dashboard - Day 23{% endblock %}
+
+{% block content %}
+    <p>Caching Extension: <span class="badge">Flask-Caching (SimpleCache Active)</span></p>
+
+    <h3>Test Benchmark Controls:</h3>
+    <p>
+        <button class="btn" onclick="testEndpoint('/api/v1/products')">🛒 Fetch Catalog (View Cache 2s vs 0.5ms)</button>
+        <button class="btn btn-warning" onclick="testEndpoint('/api/v1/products/1/analytics')">📊 Fetch Product #1 Analytics (Memoized 1.5s)</button>
+        <button class="btn btn-danger" onclick="invalidateCache()">🔄 Invalidate Product #1 Cache</button>
+    </p>
+
+    <h3>Live Response Benchmark Results:</h3>
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px;">
+        Click a benchmark button above to test caching latency...
+    </div>
+
+    <script>
+        function testEndpoint(url) {
+            const out = document.getElementById('output');
+            out.innerHTML = "Fetching endpoint '" + url + "'...";
+            const startTime = performance.now();
+
+            fetch(url)
+            .then(res => {
+                const latencyHeader = res.headers.get('X-Response-Time-MS');
+                return res.json().then(data => ({ data, latencyHeader }));
+            })
+            .then(item => {
+                const clientMs = Math.round(performance.now() - startTime);
+                out.innerHTML = "STATUS 200 OK!<br>" +
+                    "Server Latency Header: <span class='metric'>" + item.latencyHeader + "</span><br>" +
+                    "Total Roundtrip Time: " + clientMs + "ms<br><br>" +
+                    "Response Data: " + JSON.stringify(item.data, null, 2);
+            });
+        }
+
+        function invalidateCache() {
+            const out = document.getElementById('output');
+            fetch('/api/v1/products/1', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ price: (Math.random() * 500 + 100).toFixed(2) })
+            })
+            .then(r => r.json())
+            .then(data => {
+                out.innerHTML = "<strong>CACHE INVALIDATED!</strong><br>" + JSON.stringify(data, null, 2);
+            });
+        }
+    </script>
+{% endblock %}
