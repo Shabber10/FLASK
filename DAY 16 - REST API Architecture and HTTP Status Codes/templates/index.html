@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}REST API Microservice Dashboard - Day 16{% endblock %}
+
+{% block content %}
+    <p>This Flask application exposes full CRUD REST endpoints following RFC 7807 error standards:</p>
+
+    <table>
+        <thead><tr><th>HTTP Verb</th><th>Endpoint URL</th><th>Description</th><th>Status Code</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge-verb get">GET</span></td><td><code>/api/v1/products</code></td><td>List all products</td><td><code>200 OK</code></td></tr>
+            <tr><td><span class="badge-verb post">POST</span></td><td><code>/api/v1/products</code></td><td>Create new product</td><td><code>201 Created</code></td></tr>
+            <tr><td><span class="badge-verb get">GET</span></td><td><code>/api/v1/products/1</code></td><td>Fetch single product</td><td><code>200 OK / 404</code></td></tr>
+            <tr><td><span class="badge-verb put">PUT</span></td><td><code>/api/v1/products/1</code></td><td>Full replace product</td><td><code>200 OK / 422</code></td></tr>
+            <tr><td><span class="badge-verb patch">PATCH</span></td><td><code>/api/v1/products/1</code></td><td>Partial update product</td><td><code>200 OK</code></td></tr>
+            <tr><td><span class="badge-verb delete">DELETE</span></td><td><code>/api/v1/products/1</code></td><td>Delete product</td><td><code>204 No Content</code></td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 25px;">
+        <a class="btn" href="/api/v1/products">Test GET /api/v1/products API</a>
+        <a class="btn" style="background: #e74c3c;" href="/api/v1/products/999">Test GET /api/v1/products/999 (Triggers 404 JSON Error)</a>
+    </p>
+{% endblock %}

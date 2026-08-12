@@ -2,12 +2,15 @@
 ===============================================================================
 Day 16 Practice Script: Standardized RESTful Microservice API
 ===============================================================================
-This script demonstrates:
-1. Full RESTful CRUD routing (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`).
-2. Returning proper HTTP Status Codes (200 OK, 201 Created, 204 No Content, 400, 404, 422).
-3. Standardized RFC 7807 JSON Error Responses.
-4. HTTP Method Idempotency mechanics.
-5. Interactive REST API Tester Dashboard and Web UI.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Defining Product ORM model with `to_dict()` JSON serialization method.
+2. STEP 2: Authoring standardized RFC 7807 JSON error helper (`make_error_response`) & global error handlers.
+3. STEP 3: Seeding initial database product records.
+4. STEP 4: RESTful Collection Endpoints (`GET /api/v1/products` [200 OK], `POST /api/v1/products` [201 Created]).
+5. STEP 5: RESTful Single Resource Endpoints (`GET`, `PUT`, `PATCH`, `DELETE` [204 No Content]).
+6. STEP 6: Web UI API tester dashboard rendering `templates/index.html`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +19,7 @@ How to run this script:
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 
 app = Flask(__name__)
@@ -29,7 +32,7 @@ db.init_app(app)
 
 
 # =============================================================================
-# 1. Product ORM Model Definition
+# STEP 1: Product ORM Model Definition with to_dict() Helper
 # =============================================================================
 class Product(db.Model):
     __tablename__ = 'products'
@@ -42,6 +45,7 @@ class Product(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def to_dict(self):
+        """Step 1: Converts SQLAlchemy model object into serializable Python dictionary."""
         return {
             "id": self.id,
             "name": self.name,
@@ -52,22 +56,11 @@ class Product(db.Model):
         }
 
 
-# Seed initial database records if empty
-with app.app_context():
-    db.create_all()
-    if not db.session.execute(db.select(Product)).scalars().first():
-        p1 = Product(name="Pro Gaming Laptop", category="Electronics", price=1499.99, stock=15)
-        p2 = Product(name="Ergonomic Desk Chair", category="Furniture", price=299.50, stock=8)
-        p3 = Product(name="Mechanical Keyboard", category="Electronics", price=89.99, stock=30)
-        db.session.add_all([p1, p2, p3])
-        db.session.commit()
-
-
 # =============================================================================
-# 2. Standardized Error Helper (RFC 7807 Style)
+# STEP 2: Standardized Error Helper (RFC 7807 Style) & Global Error Handlers
 # =============================================================================
 def make_error_response(status_code, error_type, message, details=None):
-    """Helper constructing standardized JSON error payloads."""
+    """Step 2: Helper constructing standardized JSON error payloads."""
     payload = {
         "error": {
             "code": status_code,
@@ -91,14 +84,25 @@ def method_not_allowed_handler(e):
 
 
 # =============================================================================
-# 3. RESTful API Resource Endpoints (/api/v1/products)
+# STEP 3: Initial Database Seeding
 # =============================================================================
+with app.app_context():
+    db.create_all()
+    if not db.session.execute(db.select(Product)).scalars().first():
+        p1 = Product(name="Pro Gaming Laptop", category="Electronics", price=1499.99, stock=15)
+        p2 = Product(name="Ergonomic Desk Chair", category="Furniture", price=299.50, stock=8)
+        p3 = Product(name="Mechanical Keyboard", category="Electronics", price=89.99, stock=30)
+        db.session.add_all([p1, p2, p3])
+        db.session.commit()
 
-# GET /api/v1/products & POST /api/v1/products
+
+# =============================================================================
+# STEP 4: RESTful Collection Endpoints (/api/v1/products)
+# =============================================================================
 @app.route('/api/v1/products', methods=['GET', 'POST'])
 def handle_products_collection():
     if request.method == 'GET':
-        # 1. READ ALL (HTTP 200 OK)
+        # Step 4a: READ ALL (HTTP 200 OK)
         category_filter = request.args.get('category')
         query = db.select(Product)
         if category_filter:
@@ -112,7 +116,7 @@ def handle_products_collection():
         }), 200
 
     elif request.method == 'POST':
-        # 2. CREATE NEW RESOURCE (HTTP 201 Created)
+        # Step 4b: CREATE NEW RESOURCE (HTTP 201 Created)
         data = request.json or {}
         
         # Validation checks
@@ -138,7 +142,9 @@ def handle_products_collection():
         }), 201
 
 
-# GET /api/v1/products/<id>, PUT, PATCH, DELETE
+# =============================================================================
+# STEP 5: RESTful Single Resource Endpoints (/api/v1/products/<id>)
+# =============================================================================
 @app.route('/api/v1/products/<int:product_id>', methods=['GET', 'PUT', 'PATCH', 'DELETE'])
 def handle_single_product(product_id):
     product = db.session.get(Product, product_id)
@@ -146,11 +152,11 @@ def handle_single_product(product_id):
         return make_error_response(404, "NOT_FOUND", f"Product with ID {product_id} was not found.")
 
     if request.method == 'GET':
-        # READ SINGLE (HTTP 200 OK)
+        # Step 5a: READ SINGLE (HTTP 200 OK)
         return jsonify({"status": "success", "data": product.to_dict()}), 200
 
     elif request.method == 'PUT':
-        # FULL REPLACE (HTTP 200 OK)
+        # Step 5b: FULL REPLACE (HTTP 200 OK)
         data = request.json or {}
         if not data.get('name') or not data.get('category') or 'price' not in data:
             return make_error_response(422, "UNPROCESSABLE_ENTITY", "PUT requires complete object replacement payload ('name', 'category', 'price').")
@@ -163,7 +169,7 @@ def handle_single_product(product_id):
         return jsonify({"status": "success", "message": "Product replaced entirely", "data": product.to_dict()}), 200
 
     elif request.method == 'PATCH':
-        # PARTIAL UPDATE (HTTP 200 OK)
+        # Step 5c: PARTIAL UPDATE (HTTP 200 OK)
         data = request.json or {}
         if 'name' in data:
             product.name = data['name']
@@ -178,66 +184,23 @@ def handle_single_product(product_id):
         return jsonify({"status": "success", "message": "Product partially updated", "data": product.to_dict()}), 200
 
     elif request.method == 'DELETE':
-        # DELETE RESOURCE (HTTP 204 No Content)
+        # Step 5d: DELETE RESOURCE (HTTP 204 No Content)
         db.session.delete(product)
         db.session.commit()
         return '', 204
 
 
 # =============================================================================
-# 4. Interactive Web UI API Tester Dashboard
+# STEP 6: Interactive Web UI API Tester Dashboard Handler (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 16 REST API Microservice</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge-verb { padding: 4px 8px; border-radius: 4px; font-weight: bold; color: white; font-size: 0.85em; font-family: monospace; }
-                .get { background: #61affe; } .post { background: #49cc90; }
-                .put { background: #fca130; } .patch { background: #50e3c2; }
-                .delete { background: #f93e3e; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>🚀 Standardized RESTful Microservice API (Day 16)</h2>
-                <p>This Flask application exposes full CRUD REST endpoints following RFC 7807 error standards:</p>
-
-                <table>
-                    <thead><tr><th>HTTP Verb</th><th>Endpoint URL</th><th>Description</th><th>Status Code</th></tr></thead>
-                    <tbody>
-                        <tr><td><span class="badge-verb get">GET</span></td><td><code>/api/v1/products</code></td><td>List all products</td><td><code>200 OK</code></td></tr>
-                        <tr><td><span class="badge-verb post">POST</span></td><td><code>/api/v1/products</code></td><td>Create new product</td><td><code>201 Created</code></td></tr>
-                        <tr><td><span class="badge-verb get">GET</span></td><td><code>/api/v1/products/1</code></td><td>Fetch single product</td><td><code>200 OK / 404</code></td></tr>
-                        <tr><td><span class="badge-verb put">PUT</span></td><td><code>/api/v1/products/1</code></td><td>Full replace product</td><td><code>200 OK / 422</code></td></tr>
-                        <tr><td><span class="badge-verb patch">PATCH</span></td><td><code>/api/v1/products/1</code></td><td>Partial update product</td><td><code>200 OK</code></td></tr>
-                        <tr><td><span class="badge-verb delete">DELETE</span></td><td><code>/api/v1/products/1</code></td><td>Delete product</td><td><code>204 No Content</code></td></tr>
-                    </tbody>
-                </table>
-
-                <p style="margin-top: 25px;">
-                    <a href="/api/v1/products">Test GET /api/v1/products API</a> | 
-                    <a href="/api/v1/products/999">Test GET /api/v1/products/999 (Triggers 404 JSON Error)</a>
-                </p>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 6: Renders templates/index.html REST API dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
