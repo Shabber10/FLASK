@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Enterprise Capstone Control Center - Day 30{% endblock %}
+
+{% block content %}
+    <p>Enterprise Multi-Tenant Microservice Ecosystem (Day 30 Final Deployment)</p>
+
+    <div class="grid">
+        <div class="metric-box">
+            <div>Architecture Mode</div>
+            <div class="metric-value" style="font-size:20px;">App Factory + Blueprints</div>
+        </div>
+        <div class="metric-box">
+            <div>Security Shield</div>
+            <div class="metric-value" style="color:#10b981; font-size:20px;">Flask-Talisman (CSP)</div>
+        </div>
+        <div class="metric-box">
+            <div>Observability</div>
+            <div class="metric-value" style="color:#f59e0b; font-size:20px;">X-Request-ID UUIDs</div>
+        </div>
+    </div>
+
+    <h3>Microservice Endpoint Operations:</h3>
+    <p>
+        <button class="btn btn-health" onclick="callApi('/healthz')">GET /healthz Probe</button>
+        <button class="btn btn-health" onclick="callApi('/readyz')">GET /readyz Probe</button>
+        <button class="btn" onclick="callApi('/api/v1/tenants')">GET /api/v1/tenants</button>
+        <button class="btn" onclick="callApi('/api/v1/tenants/1/users')">GET /api/v1/tenants/1/users</button>
+    </p>
+
+    <h3>Live Telemetry Output:</h3>
+    <div class="console" id="output">Click an endpoint button above to test real-time microservice communication...</div>
+
+    <script>
+        function callApi(url) {
+            const out = document.getElementById('output');
+            out.innerHTML = "Calling endpoint '" + url + "'...";
+
+            fetch(url)
+            .then(r => {
+                const timeHeader = r.headers.get('X-Response-Time-MS');
+                const corrId = r.headers.get('X-Request-ID');
+                return r.json().then(data => ({ data, timeHeader, corrId, status: r.status }));
+            })
+            .then(item => {
+                out.innerHTML = "HTTP STATUS: " + item.status + "<br>" +
+                    "Correlation ID (X-Request-ID): <span style='color:#f59e0b;'>" + item.corrId + "</span><br>" +
+                    "Latency Header: <span style='color:#10b981;'>" + item.timeHeader + "</span><br><br>" +
+                    "Response Body:<br>" + JSON.stringify(item.data, null, 2);
+            });
+        }
+    </script>
+{% endblock %}

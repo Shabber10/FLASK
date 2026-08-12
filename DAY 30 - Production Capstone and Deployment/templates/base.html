@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 30 Enterprise Capstone Control Center{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #f8fafc; margin: 30px; }
+        .card { max-width: 950px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
+        h1 { color: #38bdf8; margin-top: 0; display: flex; align-items: center; justify-content: space-between; }
+        .badge-green { background: #10b981; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 25px 0; }
+        .metric-box { background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #334155; text-align: center; }
+        .metric-value { font-size: 28px; font-weight: bold; color: #38bdf8; margin-top: 5px; }
+        .btn { background: #0284c7; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-right: 10px; }
+        .btn-health { background: #10b981; }
+        .btn:hover { opacity: 0.9; }
+        .console { background: #000; color: #38bdf8; padding: 15px; border-radius: 6px; font-family: monospace; height: 160px; overflow-y: auto; margin-top: 15px; }
+        ul { line-height: 1.6; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        <h1>🚀 Flask Masterclass Capstone Platform <span class="badge-green">Status: PRODUCTION READY</span></h1>
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>
