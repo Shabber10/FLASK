@@ -1,0 +1,16 @@
+{# Jinja2 Macro Definitions #}
+
+{% macro render_badge(tier) %}
+    {% if tier is premium %}
+        <span class="badge badge-pro">PRO TIER</span>
+    {% else %}
+        <span class="badge badge-std">STANDARD</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro render_input(name, label, value='', type='text') %}
+    <div class="form-group" style="margin-bottom: 15px;">
+        <label for="{{ name }}" style="display: block; font-weight: bold; margin-bottom: 5px;">{{ label }}</label>
+        <input type="{{ type }}" id="{{ name }}" name="{{ name }}" value="{{ value }}" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+    </div>
+{% endmacro %}

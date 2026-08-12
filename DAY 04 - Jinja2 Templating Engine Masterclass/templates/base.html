@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Portfolio Roster Engine{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; background: #f8f9fa; color: #333; }
+        .navbar { background: #2c3e50; padding: 18px 30px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .container { max-width: 950px; margin: 30px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .row-even { background-color: #ffffff; }
+        .row-odd { background-color: #f8f9fa; }
+        .badge { padding: 5px 10px; border-radius: 4px; font-size: 0.75em; color: white; font-weight: bold; }
+        .badge-pro { background: #8e44ad; }
+        .badge-std { background: #7f8c8d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        th { background-color: #e9ecef; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="navbar">
+        <h2>🚀 Day 04: Jinja2 Masterclass Roster Engine</h2>
+    </div>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    {% block footer %}
+    <div style="text-align:center; padding: 20px; color: #7f8c8d; font-size: 0.9em;">
+        <p>&copy; {{ current_year }} Enterprise Portfolio Engine | All Rights Reserved</p>
+    </div>
+    {% endblock %}
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

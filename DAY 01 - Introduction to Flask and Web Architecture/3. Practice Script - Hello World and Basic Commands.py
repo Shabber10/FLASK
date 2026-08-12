@@ -1,15 +1,15 @@
 """
 ===============================================================================
-Day 01 Practice Script: Zero-to-Hero Minimal Flask & WSGI Application
+Day 01 Practice Script: Zero-to-Hero Pure Basics Flask Application
 ===============================================================================
-This script is designed for absolute beginners to hands-on learners.
+This script starts from absolute zero basics for beginners.
 
-What this script demonstrates:
-1. Creating a Flask application instance using `Flask(__name__)`.
-2. Attaching custom WSGI middleware to measure request execution time.
-3. Defining basic HTML routes, dynamic URL parameter routes, and JSON API routes.
-4. Safely accessing Application Context (`current_app`) and Request Context (`request`).
-5. Running the Werkzeug development server in debug mode.
+What this script demonstrates step-by-step:
+1. STEP 1: Creating the simplest 5-line Flask application.
+2. STEP 2: Adding static HTML routes (`/`, `/about`).
+3. STEP 3: Capturing dynamic URL path parameters (`/hello/<name>`).
+4. STEP 4: Returning JSON API responses (`/api/info`, `/health`).
+5. STEP 5 (ADVANCED - OPTIONAL): Attaching a custom WSGI Middleware layer.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -22,45 +22,11 @@ import time
 from flask import Flask, jsonify, request, current_app
 
 # =============================================================================
-# 1. Custom WSGI Middleware Layer
+# STEP 1: Minimal Flask Application Initialization
 # =============================================================================
-class ExecutionTimerMiddleware:
-    """
-    Custom WSGI Middleware that intercepts every incoming HTTP request,
-    calculates how many milliseconds it took to execute, and adds a custom
-    'X-WSGI-Response-Time' header to the outgoing HTTP response.
-    """
-    def __init__(self, wsgi_app):
-        # Store reference to the original Flask WSGI application
-        self.wsgi_app = wsgi_app
-
-    def __call__(self, environ, start_response):
-        # Record start timestamp when request enters WSGI layer
-        start_time = time.time()
-
-        def custom_start_response(status, headers, exc_info=None):
-            # Calculate execution duration in milliseconds
-            duration_ms = (time.time() - start_time) * 1000
-            
-            # Inject custom headers into response headers list
-            headers.append(('X-WSGI-Response-Time', f"{duration_ms:.2f}ms"))
-            headers.append(('X-Powered-By', 'Flask-3.x-Zero-to-Hero-Masterclass'))
-            
-            # Trigger the server's original start_response callback
-            return start_response(status, headers, exc_info)
-
-        # Execute the underlying Flask WSGI application
-        return self.wsgi_app(environ, custom_start_response)
-
-
-# =============================================================================
-# 2. Flask Application Initialization
-# =============================================================================
-# Pass __name__ so Flask knows where this script lives on disk
+# We pass `__name__` so Flask knows where this file lives on your computer.
+# This helps Flask locate templates and static files.
 app = Flask(__name__)
-
-# Apply our custom WSGI Middleware to wrap Flask's core wsgi_app
-app.wsgi_app = ExecutionTimerMiddleware(app.wsgi_app)
 
 # Configure basic application settings
 app.config['APPLICATION_NAME'] = 'Day 01 Zero-to-Hero Flask Masterclass'
@@ -68,21 +34,21 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'day01-beginner-secret-k
 
 
 # =============================================================================
-# 3. Route Handlers (View Functions)
+# STEP 2: Basic Static Route Handlers
 # =============================================================================
 
 @app.route('/')
 def home():
     """
-    Route 1: Home Page (Root Endpoint '/')
-    Returns a simple HTML web page welcoming the student.
+    Step 2a: Home Page (Root Endpoint '/')
+    When a browser visits http://127.0.0.1:5000/, this function returns simple HTML text.
     """
     return """
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <title>Day 01 - Flask & WSGI Masterclass</title>
+        <title>Day 01 - Pure Basics Flask App</title>
         <style>
             body { font-family: 'Segoe UI', Arial, sans-serif; margin: 40px; background-color: #f8f9fa; color: #333; }
             h1 { color: #0d6efd; }
@@ -94,16 +60,16 @@ def home():
     </head>
     <body>
         <div class="card">
-            <h1>🚀 Welcome to Day 01: Flask & WSGI Architecture</h1>
+            <h1>🚀 Welcome to Day 01: Flask Pure Basics</h1>
             <p>Congratulations! Your Flask web application is officially running!</p>
         </div>
 
         <div class="card">
-            <h3>Explore Interactive Endpoints:</h3>
+            <h3>Explore Beginner Endpoints:</h3>
             <ul>
+                <li><a href="/about">Static Route: About Page (<code>/about</code>)</a></li>
                 <li><a href="/hello/Student">Dynamic Route: Greeting (<code>/hello/Student</code>)</a></li>
                 <li><a href="/api/info">Application Context Info API (<code>/api/info</code>)</a></li>
-                <li><a href="/api/environ">WSGI Request Context Metadata (<code>/api/environ?category=flask</code>)</a></li>
                 <li><a href="/health">Health Check Endpoint (<code>/health</code>)</a></li>
             </ul>
         </div>
@@ -112,58 +78,58 @@ def home():
     """
 
 
+@app.route('/about')
+def about():
+    """
+    Step 2b: Static Route ('/about')
+    A simple second route returning pure HTML text.
+    """
+    return "<h2>About Page</h2><p>Flask makes creating web routes extremely simple!</p>"
+
+
+# =============================================================================
+# STEP 3: Dynamic URL Path Parameters
+# =============================================================================
+
 @app.route('/hello/<name>')
 def greet_user(name):
     """
-    Route 2: Dynamic Route Parameter ('/hello/<name>')
-    Demonstrates capturing variable values directly from the URL.
+    Step 3: Dynamic Route Parameter ('/hello/<name>')
+    Captures whatever value is typed in the URL (e.g. /hello/Alice or /hello/Bob)
+    and passes it directly into the Python function variable `name`.
     """
     return f"""
     <div style="font-family: sans-serif; padding: 30px;">
         <h2>Hello, <span style="color: #198754;">{name}</span>! 👋</h2>
-        <p>This page was generated dynamically by Python using URL routing parameters.</p>
+        <p>This response was dynamically generated by Python using URL path parameters!</p>
         <p><a href="/">← Return to Home</a></p>
     </div>
     """
 
 
+# =============================================================================
+# STEP 4: Basic JSON API Endpoints
+# =============================================================================
+
 @app.route('/api/info')
 def api_info():
     """
-    Route 3: Application Context Endpoint ('/api/info')
-    Uses `current_app` proxy to return application-level metadata as JSON.
+    Step 4a: Application Context Endpoint ('/api/info')
+    Returns application metadata as JSON using Flask's built-in `jsonify()`.
     """
     return jsonify({
         "status": "success",
         "app_name": current_app.config['APPLICATION_NAME'],
         "root_path": current_app.root_path,
-        "static_folder": current_app.static_folder,
-        "template_folder": current_app.template_folder,
         "debug_mode": current_app.debug
-    }), 200
-
-
-@app.route('/api/environ')
-def api_environ():
-    """
-    Route 4: Request Context Endpoint ('/api/environ')
-    Uses `request` proxy to inspect incoming HTTP request details.
-    """
-    return jsonify({
-        "status": "success",
-        "http_method": request.method,
-        "requested_path": request.path,
-        "client_ip": request.remote_addr,
-        "user_agent": request.user_agent.string,
-        "query_parameters": request.args.to_dict()
     }), 200
 
 
 @app.route('/health')
 def health_check():
     """
-    Route 5: Health Check Endpoint ('/health')
-    Standard endpoint used by monitoring tools to check if service is alive.
+    Step 4b: Health Check Endpoint ('/health')
+    Simple endpoint used to check if service is alive.
     """
     return jsonify({
         "status": "healthy",
@@ -173,14 +139,42 @@ def health_check():
 
 
 # =============================================================================
-# 4. Main Entrypoint
+# STEP 5 (OPTIONAL / ADVANCED): Custom WSGI Middleware Layer
+# =============================================================================
+# NOTE FOR BEGINNERS: You do NOT need middleware for basic web apps!
+# This is included only to show how Flask connects to raw WSGI standards.
+
+class ExecutionTimerMiddleware:
+    """
+    Custom WSGI Middleware that intercepts every incoming request,
+    calculates response execution time, and attaches a custom header.
+    """
+    def __init__(self, wsgi_app):
+        self.wsgi_app = wsgi_app
+
+    def __call__(self, environ, start_response):
+        start_time = time.time()
+
+        def custom_start_response(status, headers, exc_info=None):
+            duration_ms = (time.time() - start_time) * 1000
+            headers.append(('X-WSGI-Response-Time', f"{duration_ms:.2f}ms"))
+            return start_response(status, headers, exc_info)
+
+        return self.wsgi_app(environ, custom_start_response)
+
+# Apply optional middleware to Flask's underlying WSGI application
+app.wsgi_app = ExecutionTimerMiddleware(app.wsgi_app)
+
+
+# =============================================================================
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
-    print("🚀 Starting Day 01 Flask WSGI Application...")
+    print("🚀 Starting Day 01 Pure Basics Flask Application...")
     print(f"📍 Root Path: {app.root_path}")
-    print("🌐 Access application in browser at: http://127.0.0.1:5000/")
+    print("🌐 Open your browser at: http://127.0.0.1:5000/")
     print("=" * 75)
     
-    # Launch Werkzeug development server on localhost:5000
+    # Run Werkzeug local development server in debug mode
     app.run(host='127.0.0.1', port=5000, debug=True)

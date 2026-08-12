@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "macros.html" import render_badge %}
+
+{% block title %}Developer Roster - Jinja2 Masterclass{% endblock %}
+
+{% block content %}
+    <h2>Registered Developers (Total: {{ developers|length }})</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Developer Name</th>
+                <th>Role</th>
+                <th>Hourly Rate</th>
+                <th>Joined Date</th>
+                <th>Membership Tier</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for dev in developers %}
+            <tr class="{{ loop.cycle('row-even', 'row-odd') }}">
+                <td>{{ loop.index }}</td>
+                <td><strong>{{ dev.name|title }}</strong></td>
+                <td>{{ dev.role }}</td>
+                <td>{{ dev.hourly_rate|currency }} / hr</td>
+                <td>{{ dev.joined|short_date }}</td>
+                <td>{{ render_badge(dev.tier) }}</td>
+            </tr>
+        {% else %}
+            <tr><td colspan="6">No developers registered in system.</td></tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
