@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Logging & Observability Dashboard - Day 27{% endblock %}
+
+{% block content %}
+    <p>Telemetry Status: <span class="badge">Structured JSON Logs & Correlation Middleware Active</span></p>
+
+    <h3>Test Exception Triggers:</h3>
+    <p>
+        <button class="btn" onclick="testEndpoint('/api/v1/users/1')">🟢 Fetch User #1 (HTTP 200)</button>
+        <button class="btn btn-warning" onclick="testEndpoint('/api/v1/users/999')">🟡 Trigger 404 ResourceNotFound</button>
+        <button class="btn btn-warning" onclick="testPostOrder()">🟡 Trigger 422 ValidationException</button>
+        <button class="btn btn-danger" onclick="testEndpoint('/api/v1/cause-crash')">🔴 Trigger 500 Unhandled Crash</button>
+    </p>
+
+    <h3>Live Structured JSON Log Console:</h3>
+    <div id="logs" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; height: 180px; overflow-y: auto;">
+        Loading logs...
+    </div>
+
+    <script>
+        function testEndpoint(url) {
+            fetch(url).then(r => r.json()).then(() => refreshLogs());
+        }
+
+        function testPostOrder() {
+            fetch('/api/v1/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ item_name: "" })
+            }).then(r => r.json()).then(() => refreshLogs());
+        }
+
+        function refreshLogs() {
+            fetch('/api/v1/logs')
+            .then(r => r.json())
+            .then(data => {
+                const logsDiv = document.getElementById('logs');
+                logsDiv.innerHTML = data.logs.join('<br>') || 'Waiting for log events...';
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            });
+        }
+
+        setInterval(refreshLogs, 2000);
+        refreshLogs();
+    </script>
+{% endblock %}
