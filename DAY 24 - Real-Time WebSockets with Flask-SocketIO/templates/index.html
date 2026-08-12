@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+
+{% block title %}Real-Time WebSockets Chat Portal - Day 24{% endblock %}
+
+{% block content %}
+    <div class="chat-container">
+        <div class="sidebar">
+            <h4>Channels:</h4>
+            <button class="room-btn active" onclick="switchRoom('Lobby')"># Lobby</button>
+            <button class="room-btn" onclick="switchRoom('Tech-Support')"># Tech-Support</button>
+            <button class="room-btn" onclick="switchRoom('General-Chat')"># General-Chat</button>
+
+            <h4 style="margin-top: 30px;">User Setup:</h4>
+            <input type="text" id="username_input" value="User_" style="width:90%; padding:6px; border-radius:4px; border:none;" onchange="updateUsername()">
+        </div>
+
+        <div class="main-chat">
+            <div class="messages" id="messages_box">
+                <div class="msg-bubble msg-system">Connecting to WebSocket server...</div>
+            </div>
+
+            <div class="typing-text" id="typing_box"></div>
+
+            <div class="input-bar">
+                <input type="text" id="msg_input" placeholder="Type a message and press Enter..." oninput="handleTyping()" onkeypress="if(event.key==='Enter') sendMessage()">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        let currentRoom = 'Lobby';
+        let currentUsername = 'DevUser_' + Math.floor(Math.random() * 1000);
+        document.getElementById('username_input').value = currentUsername;
+
+        socket.on('connect', () => {
+            joinChannel(currentRoom);
+        });
+
+        socket.on('system_notification', (data) => {
+            appendMessage("SYSTEM", data.msg, "msg-system");
+        });
+
+        socket.on('room_notice', (data) => {
+            appendMessage("SYSTEM", data.message, "msg-system");
+        });
+
+        socket.on('receive_room_message', (data) => {
+            appendMessage(data.username, data.message + " <small style='color:#999;'>(" + data.timestamp + ")</small>");
+        });
+
+        socket.on('user_typing_status', (data) => {
+            const typingBox = document.getElementById('typing_box');
+            typingBox.innerHTML = data.is_typing ? data.username + " is typing..." : "";
+        });
+
+        function joinChannel(room) {
+            currentRoom = room;
+            socket.emit('join_room_channel', { username: currentUsername, room: currentRoom });
+            document.getElementById('messages_box').innerHTML = "<div class='msg-bubble msg-system'>Joined channel #" + room + "</div>";
+        }
+
+        function switchRoom(room) {
+            document.querySelectorAll('.room-btn').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+            joinChannel(room);
+        }
+
+        function updateUsername() {
+            currentUsername = document.getElementById('username_input').value || 'Anonymous';
+            joinChannel(currentRoom);
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('msg_input');
+            const text = input.value.trim();
+            if (text) {
+                socket.emit('send_room_message', { message: text });
+                socket.emit('typing_indicator', { is_typing: false });
+                input.value = '';
+            }
+        }
+
+        let typingTimeout;
+        function handleTyping() {
+            socket.emit('typing_indicator', { is_typing: true });
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                socket.emit('typing_indicator', { is_typing: false });
+            }, 1500);
+        }
+
+        function appendMessage(user, msg, extraClass = '') {
+            const box = document.getElementById('messages_box');
+            const div = document.createElement('div');
+            div.className = 'msg-bubble ' + extraClass;
+            div.innerHTML = "<strong>" + user + ":</strong> " + msg;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+    </script>
+{% endblock %}
