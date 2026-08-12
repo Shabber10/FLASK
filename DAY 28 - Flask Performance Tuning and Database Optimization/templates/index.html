@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Performance Tuning Dashboard - Day 28{% endblock %}
+
+{% block content %}
+    <p>Optimization Suite: <span class="badge">Eager Loading & Flask-Compress Active</span></p>
+
+    <p>Compare N+1 Lazy Loading vs joinedload Eager Loading performance across 50 authors and 250 books:</p>
+
+    <p>
+        <button class="btn btn-danger" onclick="runBenchmark('/api/v1/slow-authors')">🔴 Run Unoptimized N+1 Query Route (51 Queries)</button>
+        <button class="btn" onclick="runBenchmark('/api/v1/fast-authors')">🟢 Run Eager Loaded Route (1 Query)</button>
+        <button class="btn" style="background:#8e44ad;" onclick="runBenchmark('/api/v1/large-payload')">📦 Test Gzip Payload (5,000 Items)</button>
+    </p>
+
+    <h3>Live Performance Telemetry:</h3>
+    <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px;">
+        Click a benchmark button above to test database query latency...
+    </div>
+
+    <script>
+        function runBenchmark(url) {
+            const out = document.getElementById('output');
+            out.innerHTML = "Fetching '" + url + "'... Please wait...";
+
+            fetch(url)
+            .then(res => {
+                const queryCount = res.headers.get('X-Query-Count');
+                const timeMs = res.headers.get('X-Response-Time-MS');
+                const encoding = res.headers.get('Content-Encoding') || 'identity';
+
+                return res.json().then(data => ({ data, queryCount, timeMs, encoding }));
+            })
+            .then(item => {
+                out.innerHTML = "STATUS 200 OK!<br>" +
+                    "Mode: <strong>" + item.data.mode + "</strong><br>" +
+                    "SQL Queries Executed: <span class='metric'>" + item.queryCount + "</span><br>" +
+                    "Response Latency Header: <span class='metric'>" + item.timeMs + "</span><br>" +
+                    "Content-Encoding: <strong>" + item.encoding + "</strong>";
+            });
+        }
+    </script>
+{% endblock %}

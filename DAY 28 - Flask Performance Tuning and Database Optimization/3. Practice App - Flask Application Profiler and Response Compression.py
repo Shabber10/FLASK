@@ -2,12 +2,14 @@
 ===============================================================================
 Day 28 Practice Script: Flask Performance Tuning & Database Optimization
 ===============================================================================
-This script demonstrates:
-1. SQLAlchemy Eager Loading (`joinedload()`) vs Lazy Loading N+1 Query Trap.
-2. Intercepting and auditing SQL queries via SQLAlchemy engine event listeners.
-3. Transparent HTTP response compression using `Flask-Compress`.
-4. Performance timing headers (`X-Query-Count`, `X-Response-Time-MS`).
-5. Interactive Web UI Performance Benchmark Dashboard.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: ORM Models (`Author` 1 <---> N `Book`).
+2. STEP 2: Intercepting and auditing SQL queries via SQLAlchemy engine event listeners.
+3. STEP 3: In-memory database seeding routine (50 authors and 250 books).
+4. STEP 4: REST API endpoints comparing Eager Loading (`joinedload()`) vs Lazy Loading N+1 Query Trap.
+5. STEP 5: Interactive Web UI Performance Benchmark Dashboard rendering `templates/index.html`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +18,7 @@ How to run this script:
 """
 
 import time
-from flask import Flask, jsonify, g, request, render_template_string
+from flask import Flask, jsonify, g, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import joinedload
 from sqlalchemy import event
@@ -33,9 +35,10 @@ Compress(app)  # Enables transparent Gzip response compression
 
 
 # =============================================================================
-# 1. ORM Models (Author 1 <---> N Book)
+# STEP 1: ORM Models (Author 1 <---> N Book)
 # =============================================================================
 class Author(db.Model):
+    """Step 1a: Author entity model."""
     __tablename__ = 'authors'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -43,6 +46,7 @@ class Author(db.Model):
 
 
 class Book(db.Model):
+    """Step 1b: Book entity model."""
     __tablename__ = 'books'
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
@@ -50,22 +54,25 @@ class Book(db.Model):
 
 
 # =============================================================================
-# 2. SQL Query Counter & Event Listener Middleware
+# STEP 2: SQL Query Counter & Event Listener Middleware
 # =============================================================================
 @app.before_request
 def start_query_tracker():
+    """Step 2a: Initializes query counter and request timer."""
     g.query_count = 0
     g.start_time = time.time()
 
 
 @event.listens_for(Engine, "before_cursor_execute")
 def before_cursor_execute(conn, cursor, statement, parameters, context, execmany):
+    """Step 2b: Intercepts SQL engine execution and increments counter."""
     if hasattr(g, 'query_count'):
         g.query_count += 1
 
 
 @app.after_request
 def inject_performance_headers(response):
+    """Step 2c: Injects performance headers into HTTP response."""
     if hasattr(g, 'start_time') and hasattr(g, 'query_count'):
         elapsed_ms = round((time.time() - g.start_time) * 1000, 2)
         response.headers['X-Query-Count'] = str(g.query_count)
@@ -74,9 +81,10 @@ def inject_performance_headers(response):
 
 
 # =============================================================================
-# 3. Database Seeding Routine
+# STEP 3: Database Seeding Routine
 # =============================================================================
 def seed_database():
+    """Step 3: Populates in-memory database with 50 authors and 250 books."""
     with app.app_context():
         db.create_all()
         if Author.query.count() == 0:
@@ -100,13 +108,13 @@ seed_database()
 
 
 # =============================================================================
-# 4. REST API Benchmark Endpoints
+# STEP 4: REST API Benchmark Endpoints (N+1 vs Eager vs Gzip)
 # =============================================================================
 
 # GET /api/v1/slow-authors -> UNOPTIMIZED N+1 Query Trap (51 SQL Queries!)
 @app.route('/api/v1/slow-authors', methods=['GET'])
 def get_slow_authors():
-    # ❌ Triggers 1 Query for Authors + 50 Individual Queries for Books = 51 Queries!
+    """Step 4a: Unoptimized lazy loading route executing 51 database queries."""
     authors = Author.query.all()
     result = []
     for a in authors:
@@ -125,7 +133,7 @@ def get_slow_authors():
 # GET /api/v1/fast-authors -> OPTIMIZED Eager Loading (1 SQL Query!)
 @app.route('/api/v1/fast-authors', methods=['GET'])
 def get_fast_authors():
-    # ✅ Triggers 1 Single SQL LEFT OUTER JOIN Query!
+    """Step 4b: Optimized eager loading route executing 1 single SQL JOIN query."""
     authors = Author.query.options(joinedload(Author.books)).all()
     result = []
     for a in authors:
@@ -144,6 +152,7 @@ def get_fast_authors():
 # GET /api/v1/large-payload -> Demonstrates Gzip Payload Compression
 @app.route('/api/v1/large-payload', methods=['GET'])
 def get_large_payload():
+    """Step 4c: Returns 5,000 items compressed using Gzip."""
     large_dataset = [
         {"id": i, "sku": f"PROD-SKU-{i:05d}", "description": "High performance dataset payload compression test item"}
         for i in range(5000)
@@ -157,78 +166,16 @@ def get_large_payload():
 
 
 # =============================================================================
-# 5. Interactive Web UI Performance Benchmark Dashboard
+# STEP 5: Interactive Web UI Dashboard Route Handler (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 28 Performance Tuning Masterclass</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #27ae60; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-                .btn { display: inline-block; background: #27ae60; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-weight: bold; margin-right: 10px; border: none; cursor: pointer; }
-                .btn-danger { background: #c0392b; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-                .metric { font-size: 24px; font-weight: bold; color: #e74c3c; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>⚡ Performance Tuning & Database Optimization (Day 28)</h2>
-                <p>Optimization Suite: <span class="badge">Eager Loading & Flask-Compress Active</span></p>
-
-                <p>Compare N+1 Lazy Loading vs joinedload Eager Loading performance across 50 authors and 250 books:</p>
-
-                <p>
-                    <button class="btn btn-danger" onclick="runBenchmark('/api/v1/slow-authors')">🔴 Run Unoptimized N+1 Query Route (51 Queries)</button>
-                    <button class="btn" onclick="runBenchmark('/api/v1/fast-authors')">🟢 Run Eager Loaded Route (1 Query)</button>
-                    <button class="btn" style="background:#8e44ad;" onclick="runBenchmark('/api/v1/large-payload')">📦 Test Gzip Payload (5,000 Items)</button>
-                </p>
-
-                <h3>Live Performance Telemetry:</h3>
-                <div id="output" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; min-height: 120px;">
-                    Click a benchmark button above to test database query latency...
-                </div>
-
-                <script>
-                    function runBenchmark(url) {
-                        const out = document.getElementById('output');
-                        out.innerHTML = "Fetching '" + url + "'... Please wait...";
-
-                        fetch(url)
-                        .then(res => {
-                            const queryCount = res.headers.get('X-Query-Count');
-                            const timeMs = res.headers.get('X-Response-Time-MS');
-                            const encoding = res.headers.get('Content-Encoding') || 'identity';
-
-                            return res.json().then(data => ({ data, queryCount, timeMs, encoding }));
-                        })
-                        .then(item => {
-                            out.innerHTML = "STATUS 200 OK!<br>" +
-                                "Mode: <strong>" + item.data.mode + "</strong><br>" +
-                                "SQL Queries Executed: <span class='metric'>" + item.queryCount + "</span><br>" +
-                                "Response Latency Header: <span class='metric'>" + item.timeMs + "</span><br>" +
-                                "Content-Encoding: <strong>" + item.encoding + "</strong>";
-                        });
-                    }
-                </script>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 5: Renders templates/index.html dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 6. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
