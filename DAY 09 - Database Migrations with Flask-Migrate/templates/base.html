@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 09 Database Migrations{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6f9; margin: 30px; color: #333; }
+        .card { max-width: 850px; margin: 0 auto 20px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .cli-box { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; margin: 15px 0; }
+        .cli-cmd { color: #2ecc71; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 12px; border-bottom: 1px solid #e9ecef; text-align: left; }
+        th { background-color: #34495e; color: white; }
+        .btn { background: #27ae60; color: white; padding: 10px 16px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; }
+        .btn:hover { background: #219150; }
+        .form-inline { display: flex; gap: 10px; margin-top: 15px; }
+        .form-inline input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; flex: 1; }
+        .badge { background: #e74c3c; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
+        .badge-success { background: #2ecc71; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        <h2>📦 Schema Versioning & Flask-Migrate Dashboard (Day 09)</h2>
+        <p>Demonstrating live database migrations without wiping user data.</p>
+    </div>
+
+    {% block content %}{% endblock %}
+</body>
+</html>
