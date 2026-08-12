@@ -2,13 +2,15 @@
 ===============================================================================
 Day 17 Practice Script: Marshmallow Serialization & Validation Pipeline
 ===============================================================================
-This script demonstrates:
-1. Defining Marshmallow Schemas (`AuthorSchema`, `BookSchema`).
-2. Serializing SQLAlchemy models to JSON using `schema.dump()`.
-3. Deserializing and validating incoming JSON request payloads using `schema.load()`.
-4. Custom validation rules (`@validates('price')`, `@validates('isbn')`).
-5. Nested relationship serialization (`fields.Nested(BookSchema, many=True)`).
-6. Capturing `ValidationError` exceptions and returning HTTP 422 JSON error responses.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Defining SQLAlchemy ORM models (`Author`, `Book`).
+2. STEP 2: Defining Marshmallow Schemas (`BookSchema`, `AuthorSchema`) with `fields.Nested` and `@validates('isbn')`.
+3. STEP 3: Seeding initial database records.
+4. STEP 4: Serializing SQLAlchemy models to JSON using `schema.dump()` (`GET /api/v1/authors`, `GET /api/v1/books`).
+5. STEP 5: Deserializing and validating incoming JSON request payloads using `schema.load()` and handling `ValidationError` (422).
+6. STEP 6: Interactive Web UI pipeline tester dashboard rendering `templates/index.html`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -17,7 +19,7 @@ How to run this script:
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string
+from flask import Flask, jsonify, request, render_template
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import Schema, fields, validate, validates, ValidationError
 
@@ -31,7 +33,7 @@ db.init_app(app)
 
 
 # =============================================================================
-# 1. SQLAlchemy ORM Models
+# STEP 1: SQLAlchemy ORM Models
 # =============================================================================
 class Author(db.Model):
     __tablename__ = 'authors'
@@ -54,10 +56,10 @@ class Book(db.Model):
 
 
 # =============================================================================
-# 2. Marshmallow Schemas for Validation & Serialization
+# STEP 2: Marshmallow Schemas for Validation & Serialization
 # =============================================================================
 class BookSchema(Schema):
-    """Schema for validating and serializing Book records."""
+    """Step 2a: Schema for validating and serializing Book records."""
     id = fields.Int(dump_only=True)                                     # Output response only
     title = fields.Str(required=True, validate=validate.Length(min=2, max=150))
     isbn = fields.Str(required=True)
@@ -67,14 +69,14 @@ class BookSchema(Schema):
 
     @validates('isbn')
     def validate_isbn_format(self, value):
-        """Custom validation method checking ISBN length."""
+        """Step 2b: Custom validation method checking ISBN length."""
         cleaned_isbn = value.replace('-', '')
         if len(cleaned_isbn) not in [10, 13]:
             raise ValidationError("ISBN must be a valid 10 or 13-digit number format.")
 
 
 class AuthorSchema(Schema):
-    """Schema for serializing Author records with nested books."""
+    """Step 2c: Schema for serializing Author records with nested books."""
     id = fields.Int(dump_only=True)
     name = fields.Str(required=True, validate=validate.Length(min=2))
     email = fields.Email(required=True)
@@ -89,7 +91,9 @@ author_schema = AuthorSchema()
 authors_schema = AuthorSchema(many=True)
 
 
-# Seed initial database records if empty
+# =============================================================================
+# STEP 3: Initial Database Seeding
+# =============================================================================
 with app.app_context():
     db.create_all()
     if not db.session.execute(db.select(Author)).scalars().first():
@@ -101,14 +105,14 @@ with app.app_context():
 
 
 # =============================================================================
-# 3. REST API Endpoints Utilizing Marshmallow Schemas
+# STEP 4: GET REST API Endpoints Utilizing schema.dump()
 # =============================================================================
 
 # GET /api/v1/authors - Serializes list of authors with nested books
 @app.route('/api/v1/authors', methods=['GET'])
 def get_authors():
+    """Step 4a: Dumps SQLAlchemy list into JSON dict using Marshmallow."""
     authors = db.session.execute(db.select(Author)).scalars().all()
-    # Dump SQLAlchemy list into JSON dict using Marshmallow
     return jsonify({
         "status": "success",
         "data": authors_schema.dump(authors)
@@ -118,6 +122,7 @@ def get_authors():
 # GET /api/v1/books - Serializes list of books
 @app.route('/api/v1/books', methods=['GET'])
 def get_books():
+    """Step 4b: Dumps all books list."""
     books = db.session.execute(db.select(Book)).scalars().all()
     return jsonify({
         "status": "success",
@@ -125,13 +130,15 @@ def get_books():
     }), 200
 
 
-# POST /api/v1/books - Deserializes and Validates incoming JSON
+# =============================================================================
+# STEP 5: POST Endpoint Utilizing schema.load() & Handling ValidationError
+# =============================================================================
 @app.route('/api/v1/books', methods=['POST'])
 def create_book():
+    """Step 5: Loads and Validates incoming JSON using Marshmallow Schema."""
     json_payload = request.get_json() or {}
 
     try:
-        # Load and Validate incoming JSON using Marshmallow Schema!
         validated_data = book_schema.load(json_payload)
     except ValidationError as err:
         # Catch validation error and return HTTP 422 Unprocessable Entity
@@ -170,51 +177,16 @@ def create_book():
 
 
 # =============================================================================
-# 4. Interactive Web UI Dashboard
+# STEP 6: Interactive Web UI Dashboard Route Handler (render_template)
 # =============================================================================
 @app.route('/')
 def home():
-    return render_template_string("""
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <title>Day 17 Marshmallow Pipeline</title>
-            <style>
-                body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                .card { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                h2 { color: #2c3e50; margin-top: 0; }
-                .badge { background: #8e44ad; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                th { background: #34495e; color: white; }
-                code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; font-weight: bold; }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h2>🍡 Marshmallow Serialization & Validation Pipeline (Day 17)</h2>
-                <p>Data Validation Engine Active: <span class="badge">Marshmallow 3.x</span></p>
-
-                <h3>API Endpoints:</h3>
-                <ul>
-                    <li><code>GET /api/v1/authors</code> -> Serializes authors with nested books</li>
-                    <li><code>GET /api/v1/books</code> -> Serializes all books list</li>
-                    <li><code>POST /api/v1/books</code> -> Validates incoming JSON and handles 422 errors</li>
-                </ul>
-
-                <p style="margin-top: 25px;">
-                    <a href="/api/v1/authors">Inspect GET /api/v1/authors JSON</a> | 
-                    <a href="/api/v1/books">Inspect GET /api/v1/books JSON</a>
-                </p>
-            </div>
-        </body>
-        </html>
-    """)
+    """Step 6: Renders templates/index.html dashboard."""
+    return render_template('index.html')
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)

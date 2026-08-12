@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Marshmallow Pipeline Dashboard - Day 17{% endblock %}
+
+{% block content %}
+    <p>Data Validation Engine Active: <span class="badge">Marshmallow 3.x</span></p>
+
+    <h3>API Endpoints:</h3>
+    <ul>
+        <li><code>GET /api/v1/authors</code> -> Serializes authors with nested books</li>
+        <li><code>GET /api/v1/books</code> -> Serializes all books list</li>
+        <li><code>POST /api/v1/books</code> -> Validates incoming JSON and handles 422 errors</li>
+    </ul>
+
+    <p style="margin-top: 25px;">
+        <a class="btn" href="/api/v1/authors">Inspect GET /api/v1/authors JSON</a>
+        <a class="btn" href="/api/v1/books">Inspect GET /api/v1/books JSON</a>
+    </p>
+{% endblock %}
