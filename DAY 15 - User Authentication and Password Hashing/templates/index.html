@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Auth & RBAC Portal - Day 15{% endblock %}
+
+{% block content %}
+    {% if current_user.is_authenticated %}
+        <p>Welcome, <strong>{{ current_user.username }}</strong>! Role: 
+            <span class="{{ 'badge-admin' if current_user.role == 'Admin' else 'badge' }}">{{ current_user.role }}</span>
+        </p>
+        
+        <h3>Available Endpoints:</h3>
+        <ul>
+            <li><a href="/profile">User Profile (/profile)</a></li>
+            {% if current_user.role == 'Admin' %}
+                <li><a style="color: #e74c3c; font-weight: bold;" href="/admin/dashboard">🔒 Admin Dashboard (/admin/dashboard)</a></li>
+            {% else %}
+                <li><span style="color: #999; text-decoration: line-through;">🔒 Admin Dashboard (/admin/dashboard)</span> (Disabled for regular Users)</li>
+            {% endif %}
+        </ul>
+
+        <p style="margin-top: 20px;">
+            <a class="btn-admin" href="/logout">Logout</a>
+        </p>
+    {% else %}
+        <p>Please log in with pre-seeded accounts:</p>
+        <ul>
+            <li><strong>Admin</strong> -> Username: <code>admin_boss</code> | Password: <code>AdminPass123!</code></li>
+            <li><strong>User</strong> -> Username: <code>john_doe</code> | Password: <code>UserPass123!</code></li>
+        </ul>
+
+        <form method="POST" action="/login">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" name="username" required>
+            </div>
+            <div class="form-group">
+                <label>Password:</label>
+                <input type="password" name="password" required>
+            </div>
+            <button class="btn" type="submit">Login</button>
+        </form>
+    {% endif %}
+{% endblock %}

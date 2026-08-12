@@ -2,12 +2,15 @@
 ===============================================================================
 Day 15 Practice Script: Full Authentication & Role-Based Access Control System
 ===============================================================================
-This script demonstrates:
-1. Salting & hashing passwords using `generate_password_hash` and `check_password_hash`.
-2. Flask-Login session management (`LoginManager`, `UserMixin`, `@login_required`, `current_user`).
-3. Custom Role-Based Access Control decorator (`@role_required('Admin')`) using `functools.wraps`.
-4. Returning proper HTTP 401 Unauthorized vs 403 Forbidden status codes.
-5. Interactive Auth UI Portal and REST API endpoints.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Defining User model with `UserMixin` and salted password hashing (`generate_password_hash`, `check_password_hash`).
+2. STEP 2: Setting up Flask-Login `LoginManager` & `@login_manager.user_loader`.
+3. STEP 3: Writing custom `@role_required(*allowed_roles)` decorator using `functools.wraps`.
+4. STEP 4: Seeding initial database accounts (`admin_boss`, `john_doe`).
+5. STEP 5: Web UI portal route handlers (`/`, `/login`, `/logout`) rendering `templates/index.html`.
+6. STEP 6: Exposing REST API endpoints (`/profile`, `/admin/dashboard`) returning HTTP 401 vs 403.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,7 +19,7 @@ How to run this script:
 """
 
 from functools import wraps
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for, flash, abort
+from flask import Flask, jsonify, request, render_template, redirect, url_for, flash, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -30,13 +33,17 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy()
 db.init_app(app)
 
+
+# =============================================================================
+# STEP 2: Flask-Login Initialization & User Loader Callback
+# =============================================================================
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 
 # =============================================================================
-# 1. User ORM Model Definition
+# STEP 1: User ORM Model Definition with UserMixin & Hashing Methods
 # =============================================================================
 class User(UserMixin, db.Model):
     __tablename__ = 'users'
@@ -47,11 +54,11 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default='User')  # Options: 'Admin', 'Editor', 'User'
 
     def set_password(self, password):
-        """Hashes raw password and stores hash string."""
+        """Step 1a: Hashes raw password and stores hash string."""
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        """Verifies raw password input against stored hash."""
+        """Step 1b: Verifies raw password input against stored hash."""
         return check_password_hash(self.password_hash, password)
 
     def to_dict(self):
@@ -60,15 +67,15 @@ class User(UserMixin, db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    """Flask-Login user loader callback."""
+    """Step 2: Flask-Login user loader callback fetching User by integer ID."""
     return db.session.get(User, int(user_id))
 
 
 # =============================================================================
-# 2. Custom RBAC Decorator
+# STEP 3: Custom RBAC Decorator with functools.wraps
 # =============================================================================
 def role_required(*allowed_roles):
-    """Custom decorator restricting route access to specified roles."""
+    """Step 3: Custom decorator restricting route access to specified roles."""
     def decorator(f):
         @wraps(f)  # MANDATORY: Preserves original function metadata!
         def decorated_function(*args, **kwargs):
@@ -87,7 +94,9 @@ def role_required(*allowed_roles):
     return decorator
 
 
-# Seed initial database users if empty
+# =============================================================================
+# STEP 4: Initial Database Seeding
+# =============================================================================
 with app.app_context():
     db.create_all()
     if not db.session.execute(db.select(User)).scalars().first():
@@ -102,82 +111,17 @@ with app.app_context():
 
 
 # =============================================================================
-# 3. Web UI Portal & Route Handlers
+# STEP 5 & 6: Web UI Routes (render_template) & REST API Handlers
 # =============================================================================
-AUTH_UI_TEMPLATE = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 15 Auth & RBAC Portal</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-        .card { max-width: 650px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-        h2 { color: #2c3e50; margin-top: 0; }
-        .badge { background: #3498db; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .badge-admin { background: #e74c3c; color: white; padding: 4px 10px; border-radius: 4px; font-weight: bold; }
-        .form-group { margin-bottom: 15px; }
-        input[type="text"], input[type="password"] { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; }
-        .btn { background: #2ecc71; color: white; border: none; padding: 10px 18px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-admin { background: #e74c3c; text-decoration: none; padding: 10px 18px; border-radius: 4px; color: white; font-weight: bold; display: inline-block; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-        th { background: #34495e; color: white; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>🔐 User Authentication & RBAC System (Day 15)</h2>
-
-        {% if current_user.is_authenticated %}
-            <p>Welcome, <strong>{{ current_user.username }}</strong>! Role: 
-                <span class="{{ 'badge-admin' if current_user.role == 'Admin' else 'badge' }}">{{ current_user.role }}</span>
-            </p>
-            
-            <h3>Available Endpoints:</h3>
-            <ul>
-                <li><a href="/profile">User Profile (/profile)</a></li>
-                {% if current_user.role == 'Admin' %}
-                    <li><a style="color: #e74c3c; font-weight: bold;" href="/admin/dashboard">🔒 Admin Dashboard (/admin/dashboard)</a></li>
-                {% else %}
-                    <li><span style="color: #999; text-decoration: line-through;">🔒 Admin Dashboard (/admin/dashboard)</span> (Disabled for regular Users)</li>
-                {% endif %}
-            </ul>
-
-            <p style="margin-top: 20px;">
-                <a class="btn-admin" href="/logout">Logout</a>
-            </p>
-        {% else %}
-            <p>Please log in with pre-seeded accounts:</p>
-            <ul>
-                <li><strong>Admin</strong> -> Username: <code>admin_boss</code> | Password: <code>AdminPass123!</code></li>
-                <li><strong>User</strong> -> Username: <code>john_doe</code> | Password: <code>UserPass123!</code></li>
-            </ul>
-
-            <form method="POST" action="/login">
-                <div class="form-group">
-                    <label>Username:</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label>Password:</label>
-                    <input type="password" name="password" required>
-                </div>
-                <button class="btn" type="submit">Login</button>
-            </form>
-        {% endif %}
-    </div>
-</body>
-</html>
-"""
-
 @app.route('/')
 def home():
-    return render_template_string(AUTH_UI_TEMPLATE)
+    """Step 5a: Web UI Auth portal rendering templates/index.html."""
+    return render_template('index.html')
 
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Step 5b: Processes login requests or renders templates/index.html."""
     if request.method == 'POST':
         username = request.form.get('username') or (request.json or {}).get('username')
         password = request.form.get('password') or (request.json or {}).get('password')
@@ -194,12 +138,13 @@ def login():
             return jsonify({"error": "Invalid credentials"}), 401
         flash("Invalid username or password.", "danger")
 
-    return render_template_string(AUTH_UI_TEMPLATE)
+    return render_template('index.html')
 
 
 @app.route('/logout')
 @login_required
 def logout():
+    """Step 5c: Logs active user out and clears session."""
     logout_user()
     if request.is_json:
         return jsonify({"message": "Logged out successfully"}), 200
@@ -209,6 +154,7 @@ def logout():
 @app.route('/profile')
 @login_required
 def profile():
+    """Step 6a: Protected User Profile API."""
     return jsonify({
         "status": "authenticated",
         "user_id": current_user.id,
@@ -221,6 +167,7 @@ def profile():
 @login_required
 @role_required('Admin')  # Custom RBAC Decorator enforcing Admin role!
 def admin_dashboard():
+    """Step 6b: Protected Admin Dashboard API (Requires Admin role)."""
     return jsonify({
         "status": "access_granted",
         "message": "Welcome to the Secret Admin Control Dashboard!",
@@ -235,7 +182,7 @@ def forbidden_error(e):
 
 
 # =============================================================================
-# 4. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     print("=" * 75)
