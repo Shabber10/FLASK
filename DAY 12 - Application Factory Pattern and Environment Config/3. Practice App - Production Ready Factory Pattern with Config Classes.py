@@ -2,12 +2,15 @@
 ===============================================================================
 Day 12 Practice Script: Enterprise Application Factory & Config Switching
 ===============================================================================
-This script demonstrates:
-1. Class-based configuration inheritance (`BaseConfig` -> `DevConfig`, `TestConfig`, `ProdConfig`).
-2. The Application Factory Pattern (`create_app()`).
-3. Deferred extension binding using `db.init_app(app)`.
-4. Dynamic environment switching via arguments or environment variables.
-5. Exposing a Configuration Status UI and REST API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Class-based configuration inheritance (`BaseConfig` -> `DevConfig`, `TestConfig`, `ProdConfig`).
+2. STEP 2: Instantiating unattached extension objects globally (`db = SQLAlchemy()`).
+3. STEP 3: Defining ORM Models (`User`).
+4. STEP 4: The Application Factory Pattern (`create_app()`) and deferred binding (`db.init_app()`).
+5. STEP 5: Web UI status dashboard route handler (`/`) using `render_template('index.html')`.
+6. STEP 6: RESTful JSON API endpoints for config status and user listing.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,15 +19,17 @@ How to run this script:
 """
 
 import os
-from flask import Flask, jsonify, render_template_string, request
+from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 
-# Instantiate unattached extension instance globally
+# =============================================================================
+# STEP 2: Instantiate Unattached Extension Instance Globally
+# =============================================================================
 db = SQLAlchemy()
 
 
 # =============================================================================
-# 1. Class-Based Configurations Hierarchy
+# STEP 1: Class-Based Configurations Hierarchy
 # =============================================================================
 class BaseConfig:
     """Shared Baseline Configuration Settings."""
@@ -69,7 +74,7 @@ CONFIG_MAP = {
 
 
 # =============================================================================
-# 2. User ORM Model Definition
+# STEP 3: User ORM Model Definition
 # =============================================================================
 class User(db.Model):
     """ORM Model representing Users."""
@@ -84,11 +89,11 @@ class User(db.Model):
 
 
 # =============================================================================
-# 3. Application Factory Function
+# STEP 4: Application Factory Function
 # =============================================================================
 def create_app(config_object=DevConfig):
     """
-    Application Factory Pattern creating and returning a configured Flask app instance.
+    Step 4: Application Factory Pattern creating and returning a configured Flask app instance.
     
     :param config_object: Config class instance or dictionary mapping key string.
     """
@@ -110,53 +115,12 @@ def create_app(config_object=DevConfig):
     # 4. Register Routes and Endpoints
     @app.route('/')
     def index():
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <title>Day 12 Application Factory</title>
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
-                    .card { max-width: 700px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-                    h2 { color: #2c3e50; margin-top: 0; }
-                    .badge { background: #27ae60; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; }
-                    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-                    th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-                    th { background: #34495e; color: white; }
-                    code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; color: #c7254e; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h2>🏭 Application Factory & Config Status (Day 12)</h2>
-                    <p>Active Environment: <span class="badge">{{ config.ENV_NAME|upper }}</span></p>
-
-                    <table>
-                        <thead>
-                            <tr><th>Setting Key</th><th>Value</th></tr>
-                        </thead>
-                        <tbody>
-                            <tr><td><code>DEBUG</code></td><td>{{ config.DEBUG }}</td></tr>
-                            <tr><td><code>TESTING</code></td><td>{{ config.TESTING }}</td></tr>
-                            <tr><td><code>SQLALCHEMY_DATABASE_URI</code></td><td>{{ config.SQLALCHEMY_DATABASE_URI }}</td></tr>
-                            <tr><td><code>SECRET_KEY</code></td><td>{{ config.SECRET_KEY[:8] }}... (Truncated for Security)</td></tr>
-                            <tr><td><code>MAX_CONTENT_LENGTH</code></td><td>{{ config.MAX_CONTENT_LENGTH // (1024*1024) }} MB</td></tr>
-                        </tbody>
-                    </table>
-
-                    <p style="margin-top: 20px;">
-                        <a href="/api/config-status">View JSON Config API</a> | 
-                        <a href="/api/users">View Users API</a>
-                    </p>
-                </div>
-            </body>
-            </html>
-        """)
+        """Step 5: Renders templates/index.html Status Dashboard."""
+        return render_template('index.html')
 
     @app.route('/api/config-status')
     def config_status():
-        """Returns JSON representation of active configuration settings."""
+        """Step 6a: Returns JSON representation of active configuration settings."""
         return jsonify({
             "environment": app.config.get('ENV_NAME'),
             "debug": app.config.get('DEBUG'),
@@ -167,7 +131,7 @@ def create_app(config_object=DevConfig):
 
     @app.route('/api/users')
     def list_users():
-        """Returns list of users from active database."""
+        """Step 6b: Returns list of users from active database."""
         users = db.session.execute(db.select(User)).scalars().all()
         return jsonify([u.to_dict() for u in users]), 200
 
@@ -175,7 +139,7 @@ def create_app(config_object=DevConfig):
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
     # Determine configuration mode from environment variable or default to DevConfig
