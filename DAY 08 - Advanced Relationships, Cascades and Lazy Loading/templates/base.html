@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 08 Blog Platform{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 30px; color: #333; }
+        .card { max-width: 800px; margin: 0 auto 20px auto; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .tag { background: #8e44ad; color: white; padding: 4px 10px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-right: 5px; }
+        .comment-box { background: #f8f9fa; padding: 12px; border-left: 4px solid #3498db; margin-top: 10px; font-size: 0.9em; border-radius: 4px; }
+        .meta { color: #7f8c8d; font-size: 0.85em; }
+        .btn-danger { background: #e74c3c; color: white; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 0.85em; font-weight: bold; }
+        .btn-danger:hover { background: #c0392b; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        <h2>📝 Blog Engine - Relationship & Cascade Demo (Day 08)</h2>
+        <p>Demonstrating One-to-Many, Many-to-Many, and Cascade Delete-Orphan behavior.</p>
+    </div>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

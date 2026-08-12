@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Blog Posts - Day 08 Relationships & Eager Loading{% endblock %}
+
+{% block content %}
+    {% for p in posts %}
+    <div class="card">
+        <h3>{{ p.title }}</h3>
+        <p class="meta">By <strong>{{ p.author.username }}</strong> on {{ p.created_at.strftime("%b %d, %Y") }}</p>
+
+        <p>{{ p.content }}</p>
+
+        <div style="margin-bottom: 15px;">
+            <strong>Tags:</strong>
+            {% for t in p.tags %}
+                <span class="tag">{{ t.name }}</span>
+            {% endfor %}
+        </div>
+
+        <h4>Comments ({{ p.comments|length }}) <a class="btn-danger" href="/posts/delete/{{ p.id }}">Delete Post (Triggers Cascade)</a></h4>
+        {% for c in p.comments %}
+            <div class="comment-box">
+                <strong>{{ c.author_name }}:</strong> {{ c.body }}
+            </div>
+        {% else %}
+            <p class="meta">No comments yet.</p>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% endblock %}
