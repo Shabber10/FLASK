@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 10 Dual Database Binds{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 30px; color: #333; }
+        .grid { display: flex; gap: 20px; max-width: 1000px; margin: auto; }
+        .card { flex: 1; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; margin-top: 0; }
+        .badge { background: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        .badge-audit { background: #e67e22; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
+        th { background: #34495e; color: white; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div style="max-width: 1000px; margin: 0 auto 20px auto;">
+        <h2>🔀 Dual Database Binds & Raw SQL Demo (Day 10)</h2>
+    </div>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

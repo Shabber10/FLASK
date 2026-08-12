@@ -2,12 +2,15 @@
 ===============================================================================
 Day 10 Practice Script: Dual Database Binds & Raw SQL Architecture
 ===============================================================================
-This script demonstrates:
-1. Setting up multiple database connection binds (`SQLALCHEMY_BINDS`).
-2. Binding ORM models to specific database files (`__bind_key__`).
-3. Safe execution of Raw SQL queries using `sqlalchemy.text()` and bound parameters.
-4. Performing transactions across multiple database engines.
-5. Exposing an interactive dual-DB management UI and REST API.
+This script starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Setting up multiple database connection binds (`SQLALCHEMY_BINDS`).
+2. STEP 2: Binding ORM models to specific database files (`__bind_key__`).
+3. STEP 3: Initializing tables across ALL binds & pre-seeding initial data in `app.app_context()`.
+4. STEP 4: Web UI dashboard route handler (`/`) using `render_template('index.html')`.
+5. STEP 5: Safe execution of Raw SQL queries using `sqlalchemy.text()` and bound parameters.
+6. STEP 6: Retrieving secondary database engine objects using `db.get_engine()`.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -16,12 +19,16 @@ How to run this script:
 """
 
 from datetime import datetime
-from flask import Flask, jsonify, request, render_template_string, redirect, url_for
+from flask import Flask, jsonify, request, render_template, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import text, func
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'day10-multidb-secret-key'
+
+# =============================================================================
+# STEP 1: Configure Primary & Secondary Database Binds
+# =============================================================================
 
 # Primary Database Connection URI (Stores Core Users & Orders)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app_primary.db'
@@ -37,10 +44,11 @@ db = SQLAlchemy(app)
 
 
 # =============================================================================
-# 1. Primary Database ORM Models (primary.db)
+# STEP 2: Primary & Secondary ORM Models (__bind_key__)
 # =============================================================================
+
 class User(db.Model):
-    """Primary DB Model representing Users."""
+    """Primary DB Model representing Users (Stored in app_primary.db)."""
     __tablename__ = 'users'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -50,7 +58,7 @@ class User(db.Model):
 
 
 class Order(db.Model):
-    """Primary DB Model representing Financial Orders."""
+    """Primary DB Model representing Financial Orders (Stored in app_primary.db)."""
     __tablename__ = 'orders'
 
     id = db.Column(db.Integer, primary_key=True)
@@ -59,11 +67,8 @@ class Order(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
 
-# =============================================================================
-# 2. Secondary Database ORM Model (audit.db)
-# =============================================================================
 class AuditLog(db.Model):
-    """Audit DB Model representing System Event Logs."""
+    """Audit DB Model representing System Event Logs (Stored in app_audit.db)."""
     __tablename__ = 'audit_logs'
     __bind_key__ = 'audit'  # Explicitly bound to app_audit.db!
 
@@ -81,7 +86,10 @@ class AuditLog(db.Model):
         }
 
 
-# Initialize tables across ALL binds & pre-seed initial data
+# =============================================================================
+# STEP 3: Database Creation & Data Pre-seeding
+# =============================================================================
+
 with app.app_context():
     # db.create_all() creates tables in both primary.db and audit.db!
     db.create_all()
@@ -107,92 +115,29 @@ with app.app_context():
 
 
 # =============================================================================
-# 3. HTML UI Template String
+# STEP 4: Dual Database Dashboard Route Handler (HTML via render_template)
 # =============================================================================
-INDEX_HTML = """
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Day 10 Dual Database Binds</title>
-    <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 30px; color: #333; }
-        .grid { display: flex; gap: 20px; max-width: 1000px; margin: auto; }
-        .card { flex: 1; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-        h2 { color: #2c3e50; margin-top: 0; }
-        .badge { background: #27ae60; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-        .badge-audit { background: #e67e22; color: white; padding: 3px 8px; border-radius: 4px; font-size: 0.8em; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { padding: 10px; border-bottom: 1px solid #e9ecef; text-align: left; }
-        th { background: #34495e; color: white; }
-    </style>
-</head>
-<body>
-    <div style="max-width: 1000px; margin: 0 auto 20px auto;">
-        <h2>🔀 Dual Database Binds & Raw SQL Demo (Day 10)</h2>
-    </div>
 
-    <div class="grid">
-        <!-- Card 1: Primary Database -->
-        <div class="card">
-            <h3><span class="badge">Primary DB</span> Users & Orders</h3>
-            <table>
-                <thead>
-                    <tr><th>User</th><th>Orders</th></tr>
-                </thead>
-                <tbody>
-                    {% for u in users %}
-                    <tr>
-                        <td><strong>{{ u.username }}</strong></td>
-                        <td>
-                            {% for o in u.orders %}
-                                • {{ o.item_name }} (${{ "%.2f"|format(o.amount) }})<br>
-                            {% endfor %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Card 2: Audit Database -->
-        <div class="card">
-            <h3><span class="badge-audit">Audit DB</span> System Logs</h3>
-            <table>
-                <thead>
-                    <tr><th>Event</th><th>User</th><th>Time</th></tr>
-                </thead>
-                <tbody>
-                    {% for log in logs %}
-                    <tr>
-                        <td>{{ log.event }}</td>
-                        <td><strong>{{ log.user_identity }}</strong></td>
-                        <td>{{ log.timestamp.strftime("%H:%M:%S") }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-</body>
-</html>
-"""
-
-
-# =============================================================================
-# 4. Route Handlers
-# =============================================================================
 @app.route('/')
 def index():
-    """Renders HTML UI fetching data from both Primary and Audit databases."""
+    """
+    Step 4: Renders HTML UI fetching data from both Primary and Audit databases.
+    Uses templates/index.html file.
+    """
     users = db.session.execute(db.select(User)).scalars().all()
     logs = db.session.execute(db.select(AuditLog).order_by(AuditLog.id.desc())).scalars().all()
-    return render_template_string(INDEX_HTML, users=users, logs=logs)
+    return render_template('index.html', users=users, logs=logs)
 
+
+# =============================================================================
+# STEP 5: Safe Parameterized Raw SQL Execution Endpoint
+# =============================================================================
 
 @app.route('/api/raw-sql')
 def raw_sql_demo():
-    """Demonstrates SAFE Raw SQL execution with text() and bound parameters."""
+    """
+    Step 5: Demonstrates SAFE Raw SQL execution with text() and bound parameters.
+    """
     min_amount = request.args.get('min_amount', 50.0, type=float)
 
     # SAFE: Wrapped in text() using :min_val parameter binding
@@ -223,12 +168,26 @@ def list_audit_logs():
 
 
 # =============================================================================
-# 5. Main Entrypoint
+# STEP 6: Engine Inspection & Connection Pool Helper
+# =============================================================================
+
+def inspect_database_engines():
+    """Step 6: Inspects active database engine objects for binds."""
+    with app.app_context():
+        primary_engine = db.engine
+        audit_engine = db.get_engine(bind='audit')
+        print(f"ℹ️ Primary DB Engine Driver: {primary_engine.driver}")
+        print(f"ℹ️ Audit DB Engine Driver: {audit_engine.driver}")
+
+
+# =============================================================================
+# Main Entrypoint
 # =============================================================================
 if __name__ == '__main__':
+    inspect_database_engines()
     print("=" * 75)
     print("🚀 Starting Day 10 Dual Database Application...")
-    print("🌐 Open Web UI at: http://127.0.0.1:5000/")
+    print("🌐 Open Web Dashboard at: http://127.0.0.1:5000/")
     print("📡 Test Raw SQL API at: http://127.0.0.1:5000/api/raw-sql")
     print("📡 Test Audit Logs API at: http://127.0.0.1:5000/api/audit-logs")
     print("=" * 75)

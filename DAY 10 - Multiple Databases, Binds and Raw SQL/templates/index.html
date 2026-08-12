@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Dual Database Dashboard - Day 10{% endblock %}
+
+{% block content %}
+    <div class="grid">
+        <!-- Card 1: Primary Database -->
+        <div class="card">
+            <h3><span class="badge">Primary DB</span> Users & Orders</h3>
+            <table>
+                <thead>
+                    <tr><th>User</th><th>Orders</th></tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td><strong>{{ u.username }}</strong></td>
+                        <td>
+                            {% for o in u.orders %}
+                                • {{ o.item_name }} (${{ "%.2f"|format(o.amount) }})<br>
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Card 2: Audit Database -->
+        <div class="card">
+            <h3><span class="badge-audit">Audit DB</span> System Logs</h3>
+            <table>
+                <thead>
+                    <tr><th>Event</th><th>User</th><th>Time</th></tr>
+                </thead>
+                <tbody>
+                    {% for log in logs %}
+                    <tr>
+                        <td>{{ log.event }}</td>
+                        <td><strong>{{ log.user_identity }}</strong></td>
+                        <td>{{ log.timestamp.strftime("%H:%M:%S") }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endblock %}
