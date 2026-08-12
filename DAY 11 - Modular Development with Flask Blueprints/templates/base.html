@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Day 11 Multi-Blueprint Portal{% endblock %}</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #eef2f5; margin: 40px; color: #333; }
+        .card { max-width: 700px; margin: 0 auto 20px auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+        h1, h2 { color: #2c3e50; margin-top: 0; }
+        .btn { display: inline-block; background: #3498db; color: white; padding: 10px 18px; text-decoration: none; border-radius: 4px; font-weight: bold; margin-right: 10px; }
+        .btn-admin { background: #e67e22; }
+        .btn-api { background: #2ecc71; }
+        .btn-danger { background: #e74c3c; }
+        .alert { padding: 12px; margin-bottom: 20px; border-radius: 5px; color: white; font-weight: bold; }
+        .alert-success { background: #2ecc71; }
+        .alert-info { background: #3498db; }
+        ul { line-height: 1.6; }
+        code { background: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-family: monospace; border: 1px solid #e9ecef; }
+    </style>
+    {% block styles %}{% endblock %}
+</head>
+<body>
+    <div class="card">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Auth Module Login - Day 11{% endblock %}
+
+{% block content %}
+    <h2>🔒 Auth Module: Login</h2>
+    <p style="color: #7f8c8d; font-size: 0.9em;">
+        Registered inside <code>auth_bp</code> with <code>url_prefix='/auth'</code>.
+    </p>
+
+    <form method="POST" action="{{ url_for('auth.login') }}" style="margin-top: 20px;">
+        <div style="margin-bottom: 15px;">
+            <input type="text" name="username" placeholder="Enter username" required style="padding: 10px; width: 80%; border: 1px solid #ccc; border-radius: 4px;">
+        </div>
+        <button class="btn" type="submit">Login to Account</button>
+    </form>
+
+    <p style="margin-top: 25px;">
+        <a href="{{ url_for('home') }}">Back to Home Portal</a>
+    </p>
+{% endblock %}
