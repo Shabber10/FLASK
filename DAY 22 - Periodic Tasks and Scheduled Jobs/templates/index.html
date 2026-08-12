@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Periodic Task Scheduler Dashboard - Day 22{% endblock %}
+
+{% block content %}
+    <p>Scheduler Status: <span class="badge">Celery Beat Configured + Live Thread Engine Active</span></p>
+
+    <h3>Configured Celery Beat Schedules:</h3>
+    <table>
+        <thead><tr><th>Schedule Name</th><th>Task Function</th><th>Interval / Cron Rule</th><th>Action</th></tr></thead>
+        <tbody>
+            <tr><td><code>session-cleanup-10s</code></td><td><code>purge_expired_sessions_task</code></td><td>Every 10 seconds</td><td><button class="btn" onclick="triggerJob('purge-sessions')">Run Now</button></td></tr>
+            <tr><td><code>analytics-aggregation-30s</code></td><td><code>aggregate_traffic_analytics_task</code></td><td>Every 30 seconds</td><td><button class="btn" onclick="triggerJob('analytics')">Run Now</button></td></tr>
+            <tr><td><code>nightly-backup-midnight</code></td><td><code>nightly_database_backup_task</code></td><td><code>crontab(0, 0)</code> (Midnight)</td><td><button class="btn" onclick="triggerJob('backup')">Run Now</button></td></tr>
+        </tbody>
+    </table>
+
+    <h3 style="margin-top: 25px;">Live Execution Logs (Auto-Refreshing):</h3>
+    <div id="logs" style="background: #1e1e1e; color: #00ff00; padding: 15px; border-radius: 5px; font-family: monospace; height: 180px; overflow-y: auto;">
+        Loading live execution logs...
+    </div>
+
+    <script>
+        function triggerJob(jobName) {
+            fetch('/api/v1/trigger/' + jobName, { method: 'POST' })
+            .then(r => r.json())
+            .then(d => refreshLogs());
+        }
+
+        function refreshLogs() {
+            fetch('/api/v1/logs')
+            .then(r => r.json())
+            .then(data => {
+                const logsDiv = document.getElementById('logs');
+                logsDiv.innerHTML = data.logs.join('<br>') || 'Waiting for scheduled executions...';
+                logsDiv.scrollTop = logsDiv.scrollHeight;
+            });
+        }
+
+        setInterval(refreshLogs, 2000);
+        refreshLogs();
+    </script>
+{% endblock %}
