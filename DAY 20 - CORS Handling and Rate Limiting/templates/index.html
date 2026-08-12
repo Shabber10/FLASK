@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}CORS & Rate Limiter Dashboard - Day 20{% endblock %}
+
+{% block content %}
+    <p>Security Extensions Active: <span class="badge">Flask-CORS + Flask-Limiter</span></p>
+
+    <h3>API Endpoints Protection Matrix:</h3>
+    <table>
+        <thead><tr><th>Endpoint Path</th><th>Verb</th><th>Rate Limit</th><th>Description</th></tr></thead>
+        <tbody>
+            <tr><td><code>/api/v1/public</code></td><td><code>GET</code></td><td>10 / min</td><td>Public endpoint with default IP rate limit</td></tr>
+            <tr><td><code>/api/v1/strict-login</code></td><td><code>POST</code></td><td>3 / min</td><td>Strict endpoint preventing brute-force logins</td></tr>
+            <tr><td><code>/api/v1/custom-limit</code></td><td><code>GET</code></td><td>5 / min</td><td>Tracks <code>X-API-KEY</code> header or IP address</td></tr>
+            <tr><td><code>/api/v1/health</code></td><td><code>GET</code></td><td>Exempt</td><td>Health check endpoint bypassing rate limit</td></tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top: 25px;">
+        <a class="btn" href="/api/v1/public">Test GET /api/v1/public (Click 11x rapidly to trigger 429 error!)</a>
+    </p>
+{% endblock %}
