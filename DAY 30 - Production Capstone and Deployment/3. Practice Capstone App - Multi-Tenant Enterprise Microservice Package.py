@@ -2,15 +2,14 @@
 ===============================================================================
 Day 30 Grand Finale Capstone: Enterprise Multi-Tenant Microservice Package
 ===============================================================================
-This Capstone application synthesizes 30 Days of Enterprise Flask Architecture:
-- Day 11/12: Application Factory (`create_app()`) & Modular Flask Blueprints.
-- Day 06/08: SQLAlchemy ORM Models (`User`, `Tenant`, `AuditLog`) with relationships.
-- Day 20/26: Security Hardening (`Flask-Talisman`) & HTTP Security Headers.
-- Day 23: In-Memory Caching & Latency Metrics.
-- Day 27: Structured JSON Logging & `X-Request-ID` Correlation Middleware.
-- Day 27: Centralized Exception Handling & Stack Trace Security.
-- Day 30: Production Liveness (`/healthz`) & Readiness (`/readyz`) Probes.
-- Day 30: Interactive Capstone Enterprise Management Dashboard.
+This Capstone application starts from pure zero basics for beginner Flask developers.
+
+What this script demonstrates step-by-step:
+1. STEP 1: Defining SQLAlchemy ORM Models (`Tenant`, `User`, `AuditLog`).
+2. STEP 2: Modular Blueprints (`api_bp`, `health_bp` with Kubernetes `/healthz` & `/readyz` probes).
+3. STEP 3: Application Factory (`create_app('production')`) attaching `Flask-Talisman` and correlation middleware (`X-Request-ID`).
+4. STEP 4: In-memory database seeding routine (Acme Enterprise & Global Tech Logistics).
+5. STEP 5: Interactive Capstone Enterprise Dashboard rendering `templates/index.html`.
 
 How to run this Capstone app:
 1. Open your terminal in this directory.
@@ -23,7 +22,7 @@ import uuid
 import datetime
 import logging
 import json
-from flask import Flask, jsonify, request, g, render_template_string, Blueprint
+from flask import Flask, jsonify, request, g, render_template, Blueprint
 from flask_sqlalchemy import SQLAlchemy
 from flask_talisman import Talisman
 
@@ -31,9 +30,10 @@ db = SQLAlchemy()
 
 
 # =============================================================================
-# 1. ORM Models (Tenant 1 <---> N User 1 <---> N AuditLog)
+# STEP 1: ORM Models (Tenant 1 <---> N User 1 <---> N AuditLog)
 # =============================================================================
 class Tenant(db.Model):
+    """Step 1a: Tenant organization model."""
     __tablename__ = 'tenants'
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
@@ -42,6 +42,7 @@ class Tenant(db.Model):
 
 
 class User(db.Model):
+    """Step 1b: User account model linked to Tenant."""
     __tablename__ = 'users'
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -51,6 +52,7 @@ class User(db.Model):
 
 
 class AuditLog(db.Model):
+    """Step 1c: Audit log record model."""
     __tablename__ = 'audit_logs'
     id = db.Column(db.Integer, primary_key=True)
     action = db.Column(db.String(150), nullable=False)
@@ -59,7 +61,7 @@ class AuditLog(db.Model):
 
 
 # =============================================================================
-# 2. Modular Blueprints
+# STEP 2: Modular Blueprints & Kubernetes Health Probes
 # =============================================================================
 api_bp = Blueprint('api_v1', __name__, url_prefix='/api/v1')
 health_bp = Blueprint('health', __name__)
@@ -67,7 +69,7 @@ health_bp = Blueprint('health', __name__)
 
 @health_bp.route('/healthz', methods=['GET'])
 def liveness():
-    """Kubernetes Liveness Probe."""
+    """Step 2a: Kubernetes Liveness Probe."""
     return jsonify({
         "status": "UP",
         "service": "Masterclass-Capstone-API",
@@ -78,7 +80,7 @@ def liveness():
 
 @health_bp.route('/readyz', methods=['GET'])
 def readiness():
-    """Kubernetes Readiness Probe checking Database Connectivity."""
+    """Step 2b: Kubernetes Readiness Probe checking Database Connectivity."""
     try:
         db.session.execute(db.text('SELECT 1'))
         return jsonify({
@@ -92,6 +94,7 @@ def readiness():
 
 @api_bp.route('/tenants', methods=['GET'])
 def list_tenants():
+    """Step 2c: REST API list all tenants."""
     tenants = Tenant.query.all()
     return jsonify({
         "status": "success",
@@ -101,6 +104,7 @@ def list_tenants():
 
 @api_bp.route('/tenants/<int:tenant_id>/users', methods=['GET'])
 def list_tenant_users(tenant_id):
+    """Step 2d: REST API list users for specific tenant."""
     tenant = Tenant.query.get(tenant_id)
     if not tenant:
         return jsonify({"error": f"Tenant #{tenant_id} not found"}), 404
@@ -112,9 +116,10 @@ def list_tenant_users(tenant_id):
 
 
 # =============================================================================
-# 3. Application Factory (`create_app`)
+# STEP 3: Application Factory (`create_app`)
 # =============================================================================
 def create_app(config_mode='production'):
+    """Step 3: Application Factory initializing security, middleware, and blueprints."""
     app = Flask(__name__)
     app.config['SECRET_KEY'] = 'day30-capstone-masterclass-secret-key'
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
@@ -122,7 +127,7 @@ def create_app(config_mode='production'):
 
     db.init_app(app)
 
-    # 1. Attach Security Hardening (Flask-Talisman)
+    # Attach Security Hardening (Flask-Talisman)
     csp = {
         'default-src': "'self'",
         'script-src': ["'self'", "'unsafe-inline'", 'https://cdn.jsdelivr.net'],
@@ -130,7 +135,7 @@ def create_app(config_mode='production'):
     }
     Talisman(app, content_security_policy=csp, force_https=False, frame_options='DENY')
 
-    # 2. Attach Correlation ID Middleware
+    # Attach Correlation ID Middleware
     @app.before_request
     def before_req():
         g.start_time = time.time()
@@ -145,7 +150,7 @@ def create_app(config_mode='production'):
             response.headers['X-Request-ID'] = g.correlation_id
         return response
 
-    # 3. Attach Centralized Error Handlers
+    # Attach Centralized Error Handlers
     @app.errorhandler(404)
     def not_found(e):
         return jsonify({"error": {"code": 404, "message": "Endpoint or resource not found"}}), 404
@@ -155,89 +160,17 @@ def create_app(config_mode='production'):
         app.logger.error(f"Internal Error: {str(e)}", exc_info=True)
         return jsonify({"error": {"code": 500, "message": "Internal Server Error"}}), 500
 
-    # 4. Register Blueprints
+    # Register Blueprints
     app.register_blueprint(health_bp)
     app.register_blueprint(api_bp)
 
-    # 5. UI Dashboard Route
+    # UI Dashboard Route Handler (render_template)
     @app.route('/')
     def dashboard():
-        return render_template_string("""
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <title>Day 30 Enterprise Capstone Control Center</title>
-                <style>
-                    body { font-family: 'Segoe UI', Arial, sans-serif; background: #0f172a; color: #f8fafc; margin: 30px; }
-                    .card { max-width: 950px; margin: auto; background: #1e293b; padding: 30px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid #334155; }
-                    h1 { color: #38bdf8; margin-top: 0; display: flex; align-items: center; justify-content: space-between; }
-                    .badge-green { background: #10b981; color: white; padding: 4px 12px; border-radius: 6px; font-size: 14px; }
-                    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 25px 0; }
-                    .metric-box { background: #0f172a; padding: 20px; border-radius: 8px; border: 1px solid #334155; text-align: center; }
-                    .metric-value { font-size: 28px; font-weight: bold; color: #38bdf8; margin-top: 5px; }
-                    .btn { background: #0284c7; color: white; padding: 10px 18px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; margin-right: 10px; }
-                    .btn-health { background: #10b981; }
-                    .console { background: #000; color: #38bdf8; padding: 15px; border-radius: 6px; font-family: monospace; height: 160px; overflow-y: auto; margin-top: 15px; }
-                </style>
-            </head>
-            <body>
-                <div class="card">
-                    <h1>🚀 Flask Masterclass Capstone Platform <span class="badge-green">Status: PRODUCTION READY</span></h1>
-                    <p>Enterprise Multi-Tenant Microservice Ecosystem (Day 30 Final Deployment)</p>
+        """Step 5: Renders templates/index.html Capstone Dashboard."""
+        return render_template('index.html')
 
-                    <div class="grid">
-                        <div class="metric-box">
-                            <div>Architecture Mode</div>
-                            <div class="metric-value" style="font-size:20px;">App Factory + Blueprints</div>
-                        </div>
-                        <div class="metric-box">
-                            <div>Security Shield</div>
-                            <div class="metric-value" style="color:#10b981; font-size:20px;">Flask-Talisman (CSP)</div>
-                        </div>
-                        <div class="metric-box">
-                            <div>Observability</div>
-                            <div class="metric-value" style="color:#f59e0b; font-size:20px;">X-Request-ID UUIDs</div>
-                        </div>
-                    </div>
-
-                    <h3>Microservice Endpoint Operations:</h3>
-                    <p>
-                        <button class="btn btn-health" onclick="callApi('/healthz')">GET /healthz Probe</button>
-                        <button class="btn btn-health" onclick="callApi('/readyz')">GET /readyz Probe</button>
-                        <button class="btn" onclick="callApi('/api/v1/tenants')">GET /api/v1/tenants</button>
-                        <button class="btn" onclick="callApi('/api/v1/tenants/1/users')">GET /api/v1/tenants/1/users</button>
-                    </p>
-
-                    <h3>Live Telemetry Output:</h3>
-                    <div class="console" id="output">Click an endpoint button above to test real-time microservice communication...</div>
-                </div>
-
-                <script>
-                    function callApi(url) {
-                        const out = document.getElementById('output');
-                        out.innerHTML = "Calling endpoint '" + url + "'...";
-                        const t0 = performance.now();
-
-                        fetch(url)
-                        .then(r => {
-                            const timeHeader = r.headers.get('X-Response-Time-MS');
-                            const corrId = r.headers.get('X-Request-ID');
-                            return r.json().then(data => ({ data, timeHeader, corrId, status: r.status }));
-                        })
-                        .then(item => {
-                            out.innerHTML = "HTTP STATUS: " + item.status + "<br>" +
-                                "Correlation ID (X-Request-ID): <span style='color:#f59e0b;'>" + item.corrId + "</span><br>" +
-                                "Latency Header: <span style='color:#10b981;'>" + item.timeHeader + "</span><br><br>" +
-                                "Response Body:<br>" + JSON.stringify(item.data, null, 2);
-                        });
-                    }
-                </script>
-            </body>
-            </html>
-        """)
-
-    # Seed in-memory database
+    # Step 4: Seed in-memory database
     with app.app_context():
         db.create_all()
         if Tenant.query.count() == 0:
