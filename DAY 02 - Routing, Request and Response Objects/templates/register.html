@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f5f5f5; text-align: center; padding-top: 50px; }
+        form { background-color: white; display: inline-block; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input[type="text"], input[type="email"] { padding: 8px; width: 250px; margin: 10px 0; }
+        input[type="submit"] { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; }
+        input[type="submit"]:hover { background-color: #0056b3; }
+    </style>
+</head>
+<body>
+    <h2>Registration Form</h2>
+    <form method="POST" action="/register">
+        <label>Name:</label><br>
+        <input type="text" name="username" required><br><br>
+        <label>Email:</label><br>
+        <input type="email" name="email" required><br><br>
+        <label>Course:</label><br>
+        <input type="text" name="course" required><br><br>
+        <input type="submit" value="Register">
+    </form>
+</body>
+</html>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Day 03 - Request Lifecycle & Contexts</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; padding: 40px; text-align: center; }
+        .card { background: white; max-width: 600px; margin: 0 auto; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        .badge { background: #3498db; color: white; padding: 5px 12px; border-radius: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Flask Request Lifecycle Demo</h1>
+        <p>This page demonstrates Flask Application Context (<code>g</code>, <code>current_app</code>) and Request Context (<code>request</code>, <code>session</code>).</p>
+        <p><span class="badge">Request ID: {{ g.request_id if g and g.request_id else 'REQ-DEMO-1001' }}</span></p>
+    </div>
+</body>
+</html>
