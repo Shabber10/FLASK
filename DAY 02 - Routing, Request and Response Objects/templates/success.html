@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Registration Successful</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #e7f4e4; text-align: center; padding-top: 50px; }
+        .box { background-color: white; display: inline-block; padding: 30px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        a { text-decoration: none; color: white; background-color: #28a745; padding: 8px 15px; border-radius: 5px; }
+        a:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Registration Successful!</h2>
+        <p><strong>Username:</strong> {{ username }}</p>
+        <p><strong>Email:</strong> {{ email }}</p>
+        <p><strong>Course:</strong> {{ course }}</p>
+        <br>
+        <a href="/register">Go Back</a>
+    </div>
+</body>
+</html>
