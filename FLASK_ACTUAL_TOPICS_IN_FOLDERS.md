@@ -475,97 +475,68 @@ This document lists every single Topic (H1), Section (H2), and Sub-section (H3) 
 ## 📁 DAY 06 - Database Fundamentals and Flask-SQLAlchemy
 
 ### 📄 File: [0. Database Fundamentals for Absolute Beginners.md](DAY 06 - Database Fundamentals and Flask-SQLAlchemy\0. Database Fundamentals for Absolute Beginners.md)
-*   **Title (H1)**: Day 06 - Module 0: Database Fundamentals for Absolute Beginners
+*   **Title (H1)**: Day 06 - Module 0: Database Fundamentals & mysql-connector-python for Beginners
     *   **Section (H2)**: 1. What is a Database in Plain English?
-    *   **Section (H2)**: 2. What is a Relational Database (SQL)?
-        *   *Sub-section (H3)*: Key Relational Database Concepts Table
-    *   **Section (H2)**: 3. What is an ORM (Object-Relational Mapping)?
-        *   *Sub-section (H3)*: Why Use Flask-SQLAlchemy (ORM)?
-    *   **Section (H2)**: 4. What is SQLite?
-    *   **Section (H2)**: 5. Basic Flask-SQLAlchemy CRUD Operations Summary
-*   **Title (H1)**: 1. CREATE: Create & Add User
-*   **Title (H1)**: 2. READ: Query Users
-*   **Title (H1)**: 3. UPDATE: Change User Name
-*   **Title (H1)**: 4. DELETE: Remove User
+    *   **Section (H2)**: 2. What is a Relational Database (MySQL)?
+        *   *Sub-section (H3)*: Key MySQL Relational Database Concepts Table
+    *   **Section (H2)**: 3. What is `mysql-connector-python`?
+        *   *Sub-section (H3)*: Installing `mysql-connector-python`:
+    *   **Section (H2)**: 4. Connection Parameters in `mysql-connector-python`
+*   **Title (H1)**: MySQL Server Configuration
+*   **Title (H1)**: Establish Connection
     *   **Section (H2)**: 💡 Summary Checklist
 
 ### 📄 File: [1. Relational Mapping and Model Definition.md](DAY 06 - Database Fundamentals and Flask-SQLAlchemy\1. Relational Mapping and Model Definition.md)
-*   **Title (H1)**: Day 06 - Module 1: Relational Mapping & Model Definition
-    *   **Section (H2)**: 1. Flask-SQLAlchemy Initialization Patterns
-        *   *Sub-section (H3)*: Pattern 1: Direct Initialization (Small Single-File Applications)
-*   **Title (H1)**: SQLite Database Connection URI
-        *   *Sub-section (H3)*: Pattern 2: Deferred Extension Pattern (Enterprise Application Factory)
-*   **Title (H1)**: Instantiate unattached extension object
-*   **Title (H1)**: Bind db extension to active app instance
-    *   **Section (H2)**: 2. Defining Database Models & Columns
-*   **Title (H1)**: Optional explicit SQL table name (Defaults to lowercase class name 'employee')
-*   **Title (H1)**: Primary Key Column (Unique ID for each row)
-*   **Title (H1)**: Text Columns with Data Constraints
-*   **Title (H1)**: Financial Numeric Column (10 digits total, 2 decimal places)
-*   **Title (H1)**: Date & Timestamp Columns
-    *   **Section (H2)**: 3. Column Data Types Reference Table
-    *   **Section (H2)**: 4. Column Constraints & Options
-    *   **Section (H2)**: 5. Enterprise Connection Pool Configuration
+*   **Title (H1)**: Day 01 - Module 1: Database Setup & Table Definition with mysql-connector-python
+    *   **Section (H2)**: 1. Database Connection Helper Pattern
+    *   **Section (H2)**: 2. Table Creation with Raw SQL (`CREATE TABLE IF NOT EXISTS`)
+*   **Title (H1)**: SQL Table Definition Script
+    *   **Section (H2)**: 3. MySQL Data Types Reference Table
+    *   **Section (H2)**: 4. MySQL Column Constraints & Options
     *   **Section (H2)**: 💡 Summary Checklist
 
 ### 📄 File: [2. CRUD Operations and Database Session Management.md](DAY 06 - Database Fundamentals and Flask-SQLAlchemy\2. CRUD Operations and Database Session Management.md)
-*   **Title (H1)**: Day 06 - Module 2: CRUD Operations & Session Lifecycle
-    *   **Section (H2)**: 1. The 5 Object Lifecycle States in `db.session`
-    *   **Section (H2)**: 2. Standard CRUD Operations (SQLAlchemy 2.0 Syntax)
-        *   *Sub-section (H3)*: 1. Create (Insert New Rows)
-*   **Title (H1)**: 1. Create transient object
-*   **Title (H1)**: 2. Stage object in session (Pending state)
-*   **Title (H1)**: 3. Commit transaction to database (Persistent state)
-        *   *Sub-section (H3)*: 2. Read (Querying Data)
-*   **Title (H1)**: A. Fast Lookup by Primary Key ID
-*   **Title (H1)**: B. Fetch ALL Records Ordered by Last Name
-*   **Title (H1)**: C. Fetch Single Matching Record or None
-*   **Title (H1)**: D. Filter Records by Condition (e.g. Salary > 70000)
-        *   *Sub-section (H3)*: 3. Update (Modify Existing Rows)
-*   **Title (H1)**: 1. Fetch persistent object
-*   **Title (H1)**: 2. Modify attributes directly
-*   **Title (H1)**: 3. Commit changes (SQL UPDATE statement executed automatically)
-        *   *Sub-section (H3)*: 4. Delete (Remove Rows)
-    *   **Section (H2)**: 3. `db.session.flush()` vs. `db.session.commit()`
-    *   **Section (H2)**: 4. Transaction Safety & Error Rollback (`db.session.rollback()`)
-*   **Title (H1)**: Rollback transaction on database error or duplicate constraint violation!
+*   **Title (H1)**: Day 06 - Module 2: Complete MySQL CRUD Operations with mysql-connector-python
+    *   **Section (H2)**: 1. What is CRUD in Plain English?
+    *   **Section (H2)**: 2. Complete `mysql-connector-python` CRUD Implementation
+        *   *Sub-section (H3)*: 1. Create (Insert New Record into MySQL)
+*   **Title (H1)**: SAFE: Use parameterized placeholders (%s)
+        *   *Sub-section (H3)*: 2. Read (Fetch Records from MySQL)
+*   **Title (H1)**: A. Read ALL Records
+*   **Title (H1)**: B. Read SINGLE Record by ID
+        *   *Sub-section (H3)*: 3. Update (Modify Existing MySQL Record)
+        *   *Sub-section (H3)*: 4. Delete (Remove MySQL Record)
+    *   **Section (H2)**: 3. SQL Injection Defense Rule 🛡️
+*   **Title (H1)**: ❌ VULNERABLE TO SQL INJECTION (DO NOT DO THIS!):
+*   **Title (H1)**: ✅ 100% SAFE PARAMETERIZED QUERY (DO THIS!):
+    *   **Section (H2)**: 4. Transaction Error Handling & Rollback (`conn.rollback()`)
     *   **Section (H2)**: 💡 Summary Checklist
 
 ### 📄 File: [4. Memory Shortcuts and Cheatsheet.md](DAY 06 - Database Fundamentals and Flask-SQLAlchemy\4. Memory Shortcuts and Cheatsheet.md)
 *   **Title (H1)**: Day 06: Memory Shortcuts & Cheatsheet
-    *   **Section (H2)**: 🔤 Database & ORM Terminology Decoder
+    *   **Section (H2)**: 🔤 Zero-Knowledge Acronym Decoder
     *   **Section (H2)**: 🧠 Memory Mnemonics
-        *   *Sub-section (H3)*: 1. `db.session` Unit of Work Operations (`A-S-C-R`)
-        *   *Sub-section (H3)*: 2. Session Object Lifecycle States (`T-P-P-D-D`)
+        *   *Sub-section (H3)*: 1. `mysql-connector-python` Pipeline (`C-E-F-C`)
     *   **Section (H2)**: ⚡ Quick-Reference Code Snippets
-        *   *Sub-section (H3)*: 1. Model Definition Skeleton
-        *   *Sub-section (H3)*: 2. Querying with SQLAlchemy 2.0 Syntax
-*   **Title (H1)**: A. Get by Primary Key ID (Fastest)
-*   **Title (H1)**: B. Get All Matching Records
-*   **Title (H1)**: C. Get Single Record or None
-        *   *Sub-section (H3)*: 3. Safe Transaction Pattern with Exception Handler
+        *   *Sub-section (H3)*: 1. Database Connection Helper
+        *   *Sub-section (H3)*: 2. Parameterized CRUD Operations
+*   **Title (H1)**: CREATE
+*   **Title (H1)**: READ (Dict Cursor)
+*   **Title (H1)**: UPDATE
+*   **Title (H1)**: DELETE
 
 ### 📄 File: [5. Practice and Interview Questions.md](DAY 06 - Database Fundamentals and Flask-SQLAlchemy\5. Practice and Interview Questions.md)
 *   **Title (H1)**: Day 06: Practice & Technical Interview Questions
     *   **Section (H2)**: 🟢 Level 1: Absolute Beginner Questions
-        *   *Sub-section (H3)*: Q1: What is a Database and why can't we just store data in Python variables?
-        *   *Sub-section (H3)*: Q2: What is a Relational Database (SQL) and what are Tables, Columns, and Rows?
-        *   *Sub-section (H3)*: Q3: What is a Primary Key and why does every table need one?
-        *   *Sub-section (H3)*: Q4: What is an ORM (Object-Relational Mapper) and what does Flask-SQLAlchemy do?
-        *   *Sub-section (H3)*: Q5: What is SQLite and why is it used in Flask development?
+        *   *Sub-section (H3)*: Q1: What is `mysql-connector-python` and why is it needed in Flask applications?
+        *   *Sub-section (H3)*: Q2: Why must you call `conn.commit()` after executing an `INSERT`, `UPDATE`, or `DELETE` query?
+        *   *Sub-section (H3)*: Q3: What is the difference between `cursor.fetchall()` and `cursor.fetchone()`?
     *   **Section (H2)**: 🟡 Level 2: Intermediate Questions
-        *   *Sub-section (H3)*: Q6: What is the difference between legacy `Model.query.all()` and SQLAlchemy 2.0 `db.select()` syntax?
-*   **Title (H1)**: Modern 2.0 Standard
-        *   *Sub-section (H3)*: Q7: What does `db.session.get(Model, pk_val)` do, and why is it preferred over `db.select(Model).where(Model.id == pk_val)`?
-        *   *Sub-section (H3)*: Q8: What is the difference between `db.session.flush()` and `db.session.commit()`?
-        *   *Sub-section (H3)*: Q9: Why is `db.session.rollback()` critical inside exception blocks during database operations?
-        *   *Sub-section (H3)*: Q10: How do `default` and `server_default` differ in Flask-SQLAlchemy column definitions?
+        *   *Sub-section (H3)*: Q4: Why is `cursor = conn.cursor(dictionary=True)` recommended when building Flask web apps?
+        *   *Sub-section (H3)*: Q5: Explain how `%s` placeholders prevent SQL Injection attacks.
     *   **Section (H2)**: 🔴 Level 3: Advanced & Enterprise Questions
-        *   *Sub-section (H3)*: Q11: Explain the Unit of Work pattern in Flask-SQLAlchemy (`db.session`).
-        *   *Sub-section (H3)*: Q12: Explain the five object lifecycle states in SQLAlchemy.
-        *   *Sub-section (H3)*: Q13: How do `db.Numeric(precision, scale)` and `db.Float` differ for storing financial transactions?
-        *   *Sub-section (H3)*: Q14: What does `SQLALCHEMY_TRACK_MODIFICATIONS = False` do and why should it always be disabled?
-        *   *Sub-section (H3)*: Q15: How do you configure SQLAlchemy engine connection pooling for high-concurrency production deployments?
+        *   *Sub-section (H3)*: Q6: What is Connection Pooling in `mysql-connector-python`, and why is it essential in high-traffic Flask apps?
+        *   *Sub-section (H3)*: Q7: How do you handle database errors and transaction rollbacks using `mysql.connector.Error`?
 
 ## 📁 DAY 07 - Advanced Querying, Filtering and Transactions
 
