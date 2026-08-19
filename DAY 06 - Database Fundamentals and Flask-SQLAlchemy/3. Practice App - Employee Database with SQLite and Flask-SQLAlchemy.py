@@ -1,180 +1,180 @@
 """
-===============================================================================
-Day 06 Practice Script: Employee Directory Database Application
-===============================================================================
-This script starts from pure zero basics for beginner Flask developers.
-
-What this script demonstrates step-by-step:
-1. STEP 1: Setting up SQLite database connection and defining `Employee(db.Model)`.
-2. STEP 2: Creating SQL tables (`db.create_all()`) and pre-seeding initial data in `app.app_context()`.
-3. STEP 3: Querying database rows using SQLAlchemy 2.0 syntax (`db.select()`, `scalars().all()`).
-4. STEP 4: Handling HTML form insertion with transaction safety (`db.session.rollback()`).
-5. STEP 5: Deleting database rows by Primary Key ID (`db.session.delete()`).
-6. STEP 6: Exposing RESTful JSON API endpoints (`/api/employees`).
-
-How to run this script:
-1. Open your terminal in this directory.
-2. Run: python "3. Practice App - Employee Database with SQLite and Flask-SQLAlchemy.py"
-3. Open your browser and navigate to: http://127.0.0.1:5000/
+Day 06 Practice Application: Employee Portal with mysql-connector-python
+========================================================================
+Demonstrates complete raw MySQL Database CRUD operations in Flask using `mysql-connector-python`.
+Includes fallback support for local testing.
 """
 
-from datetime import datetime
-from flask import Flask, jsonify, request, render_template, redirect, url_for, flash
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.exc import SQLAlchemyError
+from flask import Flask, request, render_template_string, redirect, url_for, jsonify
+import mysql.connector
+from mysql.connector import Error
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'day06-sqlalchemy-masterclass-secret'
-# Configure local SQLite database file path (stored as instance/employees.db)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///employees.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# Initialize SQLAlchemy extension instance
-db = SQLAlchemy(app)
+# MySQL Database Configuration
+db_config = {
+    'host': 'localhost',
+    'user': 'root',
+    'password': 'password',
+    'database': 'flask_demo_db',
+    'port': 3306
+}
 
+def get_db_connection():
+    """Helper to establish a MySQL connection."""
+    return mysql.connector.connect(**db_config)
 
-# =============================================================================
-# STEP 1: Employee ORM Model Definition
-# =============================================================================
+def init_db():
+    """Initializes the employees table in MySQL."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS employees (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                first_name VARCHAR(50) NOT NULL,
+                last_name VARCHAR(50) NOT NULL,
+                email VARCHAR(120) UNIQUE NOT NULL,
+                salary DECIMAL(10, 2) NOT NULL DEFAULT 0.00
+            ) ENGINE=InnoDB;
+        """)
+        conn.commit()
+        cursor.close()
+        conn.close()
+        print("✅ MySQL 'employees' table initialized successfully.")
+    except Error as e:
+        print(f"⚠️ MySQL Connection Notice: {e}")
 
-class Employee(db.Model):
-    """ORM Model representing the 'employees' database table."""
-    __tablename__ = 'employees'
+# HTML Template
+HTML_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Employee Management Portal (mysql-connector-python)</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; background-color: #f8f9fa; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+        form { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr auto; gap: 10px; margin-bottom: 30px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { background: #2ecc71; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; }
+        button.delete { background: #e74c3c; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #34495e; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>👨‍💼 Employee Portal (mysql-connector-python CRUD)</h1>
+        
+        <!-- CREATE FORM -->
+        <h3>Add New Employee</h3>
+        <form action="/add-employee" method="POST">
+            <input type="text" name="first_name" placeholder="First Name" required>
+            <input type="text" name="last_name" placeholder="Last Name" required>
+            <input type="email" name="email" placeholder="Email Address" required>
+            <input type="number" step="0.01" name="salary" placeholder="Salary ($)" required>
+            <button type="submit">Add Employee</button>
+        </form>
 
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
-    department = db.Column(db.String(50), nullable=False)
-    salary = db.Column(db.Float, nullable=False, default=0.0)
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+        <!-- READ TABLE -->
+        <h3>Current Employees List</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Salary</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td>{{ emp.id }}</td>
+                    <td>{{ emp.first_name }} {{ emp.last_name }}</td>
+                    <td>{{ emp.email }}</td>
+                    <td>${{ "%.2f"|format(emp.salary) }}</td>
+                    <td>
+                        <form action="/delete-employee/{{ emp.id }}" method="POST" style="display:inline;">
+                            <button type="submit" class="delete">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" style="text-align:center;">No employees found in database. Add one above!</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>
+"""
 
-    def to_dict(self):
-        """Helper method to serialize model instance to a JSON dictionary."""
-        return {
-            "id": self.id,
-            "name": self.name,
-            "email": self.email,
-            "department": self.department,
-            "salary": self.salary,
-            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S")
-        }
-
-
-# =============================================================================
-# STEP 2: Database Initialization & Initial Data Seeding
-# =============================================================================
-
-with app.app_context():
-    # Creates all tables defined by db.Model classes if they do not exist
-    db.create_all()
-    
-    # Check if table is empty using SQLAlchemy 2.0 select statement
-    first_record = db.session.execute(db.select(Employee)).scalars().first()
-    if not first_record:
-        print("🌱 Pre-seeding initial employee records into SQLite database...")
-        sample_emps = [
-            Employee(name="Alice Smith", email="alice@company.com", department="Engineering", salary=85000.0),
-            Employee(name="Bob Jones", email="bob@company.com", department="Marketing", salary=62000.0),
-            Employee(name="Charlie Brown", email="charlie@company.com", department="Sales", salary=71000.0)
-        ]
-        db.session.add_all(sample_emps)
-        db.session.commit()
-        print("✅ Sample data pre-seeded successfully!")
-
-
-# =============================================================================
-# STEP 3 & 4 & 5: Web UI Routes (HTML via render_template)
-# =============================================================================
+# Demo In-Memory Storage if local MySQL server is offline
+demo_employees = [
+    {"id": 1, "first_name": "Alice", "last_name": "Smith", "email": "alice@example.com", "salary": 85000.00},
+    {"id": 2, "first_name": "Bob", "last_name": "Jones", "email": "bob@example.com", "salary": 62000.00}
+]
 
 @app.route('/')
 def index():
-    """
-    Step 3: Renders HTML Employee Directory querying all database rows.
-    Uses modern SQLAlchemy 2.0 syntax: db.select(Employee).order_by(...)
-    """
-    stmt = db.select(Employee).order_by(Employee.id.desc())
-    emps = db.session.execute(stmt).scalars().all()
-    return render_template('employees.html', employees=emps)
-
-
-@app.route('/employees/add', methods=['POST'])
-def add_employee_form():
-    """
-    Step 4: Form submission handler with transaction rollback safety.
-    """
+    """READ: Fetch all employees."""
     try:
-        emp = Employee(
-            name=request.form['name'],
-            email=request.form['email'],
-            department=request.form['department'],
-            salary=float(request.form['salary'])
-        )
-        db.session.add(emp)
-        db.session.commit()
-        flash(f"Employee '{emp.name}' added successfully!", "success")
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        print(f"❌ [DB ERROR] Rollback triggered: {e}")
-        flash("Failed to add employee. Email address may already be in use.", "danger")
-        
-    return redirect(url_for('index'))
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT id, first_name, last_name, email, salary FROM employees ORDER BY id DESC")
+        employees = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return render_template_string(HTML_TEMPLATE, employees=employees)
+    except Error:
+        # Fallback for local testing if MySQL service isn't active
+        return render_template_string(HTML_TEMPLATE, employees=demo_employees)
 
-
-@app.route('/employees/delete/<int:emp_id>')
-def delete_employee_form(emp_id):
-    """
-    Step 5: Deleting an Employee record by Primary Key ID.
-    Uses db.session.get(Employee, emp_id)
-    """
-    emp = db.session.get(Employee, emp_id)
-    if emp:
-        db.session.delete(emp)
-        db.session.commit()
-        flash(f"Employee #{emp_id} deleted successfully.", "success")
-    return redirect(url_for('index'))
-
-
-# =============================================================================
-# STEP 6: RESTful JSON API Endpoints
-# =============================================================================
-
-@app.route('/api/employees', methods=['GET'])
-def list_employees_api():
-    """Step 6a: API Endpoint returning all employees as JSON."""
-    stmt = db.select(Employee).order_by(Employee.id)
-    emps = db.session.execute(stmt).scalars().all()
-    return jsonify([e.to_dict() for e in emps]), 200
-
-
-@app.route('/api/employees', methods=['POST'])
-def create_employee_api():
-    """Step 6b: API Endpoint creating a new employee from JSON payload."""
-    data = request.get_json(silent=True) or {}
-    if not all(k in data for k in ('name', 'email', 'department', 'salary')):
-        return jsonify({"error": "Bad Request", "message": "Missing required fields"}), 400
+@app.route('/add-employee', methods=['POST'])
+def add_employee():
+    """CREATE: Insert new employee."""
+    first_name = request.form.get('first_name')
+    last_name = request.form.get('last_name')
+    email = request.form.get('email')
+    salary = request.form.get('salary', type=float, default=0.00)
 
     try:
-        emp = Employee(
-            name=data['name'],
-            email=data['email'],
-            department=data['department'],
-            salary=float(data['salary'])
-        )
-        db.session.add(emp)
-        db.session.commit()
-        return jsonify(emp.to_dict()), 201
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        return jsonify({"error": "Database Error", "message": str(e)}), 400
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = "INSERT INTO employees (first_name, last_name, email, salary) VALUES (%s, %s, %s, %s)"
+        cursor.execute(sql, (first_name, last_name, email, salary))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Error as e:
+        print(f"Database write notice: {e}")
+        new_id = len(demo_employees) + 1
+        demo_employees.append({"id": new_id, "first_name": first_name, "last_name": last_name, "email": email, "salary": salary})
 
+    return redirect(url_for('index'))
 
-# =============================================================================
-# Main Entrypoint
-# =============================================================================
+@app.route('/delete-employee/<int:emp_id>', methods=['POST'])
+def delete_employee(emp_id):
+    """DELETE: Remove employee record."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM employees WHERE id = %s", (emp_id,))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Error:
+        global demo_employees
+        demo_employees = [e for e in demo_employees if e['id'] != emp_id]
+
+    return redirect(url_for('index'))
+
 if __name__ == '__main__':
-    print("=" * 75)
-    print("🚀 Starting Day 06 Employee Directory Application...")
-    print("🌐 Open Web UI at: http://127.0.0.1:5000/")
-    print("📡 Test REST API at: http://127.0.0.1:5000/api/employees")
-    print("=" * 75)
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    print("🚀 Starting Flask App with mysql-connector-python on http://127.0.0.1:5000")
+    init_db()
+    app.run(debug=True)
