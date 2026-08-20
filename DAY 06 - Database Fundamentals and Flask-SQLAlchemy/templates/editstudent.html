@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editstudent</title>
+</head>
+
+<body>
+    <form action="/updatestudent/{{student[0]}}" method="post">
+        <input type="number" name="sid" id="" value="{{student[0]}}" readonly> <br><br>
+        <input type="text" name="sname" id="" placeholder="Enter name" value="{{student[1]}}" required> <br><br>
+        <input type="number" name="sage" id="" placeholder="Enter age" value="{{student[2]}}" required> <br><br>
+        <input type="number" name="smarks" id="" placeholder="Enter marks" value="{{student[3]}}" required><br><br>
+        <input type="text" name="scity" id="" placeholder="Enter city" value="{{student[4]}}" required> <br><br>
+        <input type="submit" value="Update">
+    </form>
+
+    <a href="/getstudents">Back to student</a>
+
+</body>
+
+</html>
