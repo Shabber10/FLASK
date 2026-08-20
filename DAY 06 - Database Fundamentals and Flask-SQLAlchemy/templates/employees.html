@@ -1,47 +1,60 @@
 {% extends "base.html" %}
 
-{% block title %}Employee Directory System - Day 06{% endblock %}
+{% block title %}College Student Portal - Day 06{% endblock %}
 
 {% block content %}
-    <h2>📊 Employee Directory System (Day 06)</h2>
+    <h2>🎓 College Student Portal (Day 06)</h2>
     <p style="color: #7f8c8d; font-size: 0.9em;">
-        🗄️ Powered by SQLite Database Engine & Flask-SQLAlchemy 3.x ORM Models.
+        🗄️ Powered by MySQL Database Server (`college` DB) & `mysql-connector-python` Driver.
     </p>
 
-    <!-- Form for Adding New Employees -->
-    <form class="form-inline" method="POST" action="/employees/add">
-        <input type="text" name="name" placeholder="Full Name" required>
-        <input type="email" name="email" placeholder="Email Address" required>
-        <input type="text" name="department" placeholder="Department" required>
-        <input type="number" step="0.01" name="salary" placeholder="Salary ($)" required>
-        <button class="btn" type="submit">Add Employee</button>
+    <!-- Form for Adding New Student Manually -->
+    <h3>Add New Student</h3>
+    <form class="form-inline" method="POST" action="/add-student">
+        <input type="text" name="sname" placeholder="Student Name (sname)" required>
+        <input type="number" name="sage" placeholder="Age (sage)" min="15" max="100" required>
+        <input type="number" step="0.01" name="smarks" placeholder="Marks (smarks)" min="0" max="100" required>
+        <input type="text" name="scity" placeholder="City (scity)" required>
+        <button class="btn" type="submit">Add Student</button>
     </form>
 
-    <!-- Table Displaying Database Rows -->
+    <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+        <h3>Registered Students</h3>
+        <form action="/add-random-student" method="POST" style="display:inline;">
+            <button type="submit" class="btn" style="background: #8e44ad;">🎲 Generate & Insert Random Student</button>
+        </form>
+    </div>
+
+    <!-- Table Displaying Student Rows -->
     <table>
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Department</th>
-                <th>Salary</th>
+                <th>Student Name (sname)</th>
+                <th>Age (sage)</th>
+                <th>Marks (smarks)</th>
+                <th>City (scity)</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            {% for e in employees %}
+            {% for s in students %}
             <tr>
-                <td>{{ e.id }}</td>
-                <td><strong>{{ e.name }}</strong></td>
-                <td>{{ e.email }}</td>
-                <td>{{ e.department }}</td>
-                <td>${{ "%.2f"|format(e.salary) }}</td>
-                <td><a class="delete-btn" href="/employees/delete/{{ e.id }}">Delete</a></td>
+                <td>{{ s.id }}</td>
+                <td><strong>{{ s.sname }}</strong></td>
+                <td>{{ s.sage }}</td>
+                <td>{{ "%.2f"|format(s.smarks) }}</td>
+                <td>{{ s.scity }}</td>
+                <td>
+                    <form action="/delete-student/{{ s.id }}" method="POST" style="display:inline;">
+                        <button type="submit" class="delete-btn" style="border:none; background:none; cursor:pointer;">Delete</button>
+                    </form>
+                </td>
             </tr>
             {% else %}
-            <tr><td colspan="6">No employees found in database.</td></tr>
+            <tr><td colspan="6" style="text-align:center;">No students found in `college.student` database. Add one above or click 'Generate & Insert Random Student'!</td></tr>
             {% endfor %}
         </tbody>
     </table>
 {% endblock %}
+
