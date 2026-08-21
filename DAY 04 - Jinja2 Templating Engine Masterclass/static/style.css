@@ -1,0 +1,34 @@
+header {
+    color: red;
+    background-color: aqua;
+    text-align: center;
+    padding: 15px;
+}
+
+nav a {
+    margin: 0 10px;
+    text-decoration: none;
+    font-weight: bold;
+    color: #333;
+}
+
+nav a:hover {
+    color: blue;
+}
+
+footer {
+    color: rgb(255, 255, 0);
+    background-color: rgb(102, 0, 255);
+    text-align: center;
+    padding: 10px;
+    margin-top: 20px;
+}
+
+body {
+    margin: 0px;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    padding: 20px;
+}
