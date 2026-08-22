@@ -1,174 +1,198 @@
 """
-Day 06 Practice Application: College Student Database with mysql-connector-python
-==================================================================================
-Demonstrates complete raw MySQL Database CRUD operations in Flask using `mysql-connector-python`.
-Target Database: `collegedb`, Table: `student` (id, sname, sage, smarks, scity).
+===============================================================================
+Day 06 Practice Application: Employee & Student Database with Flask-SQLAlchemy
+===============================================================================
+Demonstrates complete Object-Relational Mapping (ORM) and CRUD operations in Flask
+using `Flask-SQLAlchemy` and SQLite (zero-config, portable).
+
+Features Demonstrated:
+1. Setting up Flask-SQLAlchemy with SQLite database URI (`sqlite:///company.db`).
+2. Defining the `Employee` model with constraints, types, and serialization.
+3. Automatically creating tables via `db.create_all()` inside app context.
+4. Performing all 4 CRUD operations:
+   - CREATE: `POST /api/employees` or form submission
+   - READ: `GET /api/employees` and `GET /api/employees/<id>`
+   - UPDATE: `PUT /api/employees/<id>`
+   - DELETE: `DELETE /api/employees/<id>`
+5. Interactive Web Portal Dashboard rendering `templates/index.html`.
 """
 
-from flask import Flask, render_template, request, redirect
-import mysql.connector
-from mysql.connector import Error
+import os
+from datetime import datetime, timezone
+from flask import Flask, render_template, request, redirect, url_for, jsonify
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import select
 
 app = Flask(__name__)
 
-# Database configuration for 'collegedb'
-db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': 'password',
-    'database': 'collegedb',
-    'port': 3306
-}
+# =============================================================================
+# STEP 1: Database Configuration & Extension Initialization
+# =============================================================================
+basedir = os.path.abspath(os.path.dirname(__file__))
+app.config['SECRET_KEY'] = 'day06-database-masterclass-secret'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+    'DATABASE_URL', 
+    'sqlite:///' + os.path.join(basedir, 'company.db')
+)
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-def get_db_connection():
-    """Helper to establish a MySQL connection to 'collegedb'."""
-    return mysql.connector.connect(**db_config)
+db = SQLAlchemy(app)
 
-# Fallback in-memory student storage if local MySQL server is offline
-demo_students = [
-    (1, "raju", 24, 85.0, "Hyderabad"),
-    (2, "ramu", 25, 90.0, "Bangalore")
-]
 
-def init_db():
-    """Initializes the 'student' table in 'collegedb' database."""
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS student (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                sname VARCHAR(100) NOT NULL,
-                sage INT NOT NULL,
-                smarks DECIMAL(5, 2) NOT NULL,
-                scity VARCHAR(100) NOT NULL
-            ) ENGINE=InnoDB;
-        """)
-        conn.commit()
-        cursor.close()
-        conn.close()
-        print("✅ MySQL 'student' table in 'collegedb' initialized successfully.")
-    except Error as e:
-        print(f"⚠️ MySQL Connection Notice: {e}")
+# =============================================================================
+# STEP 2: Model Definition (Employee Table)
+# =============================================================================
+class Employee(db.Model):
+    __tablename__ = "employees"
 
-# route for check the connection
-@app.route('/')
-def Home():
-    return "Database connection is successfully"
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False, index=True)
+    department = db.Column(db.String(50), nullable=False, default="Engineering")
+    salary = db.Column(db.Float, nullable=False, default=50000.0)
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(
+        db.DateTime, 
+        default=lambda: datetime.now(timezone.utc), 
+        nullable=False
+    )
 
-# fetch the student records from database (collegedb)
-@app.route('/getstudents', methods=['GET'])
-def Getstudents():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("select * from student")
-        results = cursor.fetchall()  # nested list
-        print(results)
-        cursor.close()
-        conn.close()
-        return render_template('studentsdata.html', students=results)
-    except Error:
-        return render_template('studentsdata.html', students=demo_students)
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "department": self.department,
+            "salary": self.salary,
+            "is_active": self.is_active,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None
+        }
 
-# fetch student record based on id
-@app.route('/getstudentbyid/<int:sid>', methods=['GET']) # /getstudentbyid/1
-def Getstudentbyid(sid): 
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("select * from student where id=%s", (sid,))
-        result = cursor.fetchone()
-        print("data is:", result)
-        cursor.close()
-        conn.close()
-        if not result:
-            return {"message": f"student id {sid} is not found"}
-        return result
-    except Error:
-        for s in demo_students:
-            if s[0] == sid:
-                return {"id": s[0], "sname": s[1], "sage": s[2], "smarks": s[3], "scity": s[4]}
-        return {"message": f"student id {sid} is not found"}
 
-# api for display register form
-@app.route('/register')
-def Register():
-    return render_template('register.html')
+# =============================================================================
+# STEP 3: Database Initialization & Seeding Helper
+# =============================================================================
+def init_database():
+    """Initializes tables and seeds initial demo data."""
+    with app.app_context():
+        db.create_all()
+        # Seed demo data if database is empty
+        if not Employee.query.first():
+            demo_employees = [
+                Employee(name="Alice Johnson", email="alice@enterprise.dev", department="Engineering", salary=85000.0),
+                Employee(name="Bob Smith", email="bob@enterprise.dev", department="Marketing", salary=62000.0),
+                Employee(name="Charlie Lee", email="charlie@enterprise.dev", department="Finance", salary=75000.0)
+            ]
+            db.session.add_all(demo_employees)
+            db.session.commit()
+            print("✓ Database initialized with sample employees.")
 
-# api for get data from form and send data to db
-@app.route('/Addstudent', methods=['POST'])
-def Addstudent():
-    name = request.form['myname']
-    age = request.form['myage']
-    marks = request.form['mymarks']
-    city = request.form['mycity']
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("insert into student(sname,sage,smarks,scity) values(%s,%s,%s,%s)", (name, age, marks, city))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Error as e:
-        print(f"Database write notice: {e}")
-        new_id = len(demo_students) + 1
-        demo_students.append((new_id, name, int(age), float(marks), city))
-    return redirect('/getstudents')
 
-# route for get data based on id for editing
-@app.route('/editstudent/<int:sid>', methods=['GET'])
-def Editstudent(sid):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("select * from student where id=%s", (sid,))
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-        return render_template('editstudent.html', student=result)
-    except Error:
-        match = next((s for s in demo_students if s[0] == sid), demo_students[0])
-        return render_template('editstudent.html', student=match)
+# =============================================================================
+# STEP 4: REST API CRUD Endpoints
+# =============================================================================
 
-# route for update the student based on id
-@app.route('/updatestudent/<int:sid>', methods=['POST'])
-def Updatestudent(sid):
-    id = request.form['sid']
-    name = request.form['sname']
-    age = request.form['sage']
-    marks = request.form['smarks']
-    city = request.form['scity']
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        query = "update student set sname=%s,sage=%s,smarks=%s,scity=%s where id=%s"
-        cursor.execute(query, (name, age, marks, city, id))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Error as e:
-        print(f"Database write notice: {e}")
-        global demo_students
-        demo_students = [(int(id), name, int(age), float(marks), city) if s[0] == int(id) else s for s in demo_students]
-    return redirect('/getstudents')
+# 1. READ ALL: GET /api/employees
+@app.route('/api/employees', methods=['GET'])
+def api_get_employees():
+    stmt = select(Employee).order_by(Employee.id.asc())
+    employees = db.session.execute(stmt).scalars().all()
+    return jsonify({
+        "status": "success",
+        "total": len(employees),
+        "employees": [e.to_dict() for e in employees]
+    }), 200
 
-# route for delete student based on id
-@app.route('/deletestudent/<int:sid>', methods=['GET'])
-def Deletestudent(sid):
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("delete from student where id=%s", (sid,))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Error:
-        global demo_students
-        demo_students = [s for s in demo_students if s[0] != sid]
-    return redirect("/getstudents")
+
+# 2. READ ONE: GET /api/employees/<id>
+@app.route('/api/employees/<int:emp_id>', methods=['GET'])
+def api_get_employee(emp_id):
+    employee = db.session.get(Employee, emp_id)
+    if not employee:
+        return jsonify({"error": "Employee not found"}), 404
+    return jsonify({"status": "success", "employee": employee.to_dict()}), 200
+
+
+# 3. CREATE: POST /api/employees
+@app.route('/api/employees', methods=['POST'])
+def api_create_employee():
+    data = request.get_json() or {}
+    name = data.get('name')
+    email = data.get('email')
+    department = data.get('department', 'Engineering')
+    salary = float(data.get('salary', 50000))
+
+    if not name or not email:
+        return jsonify({"error": "Validation Error", "message": "Name and email are required"}), 422
+
+    # Check for existing email
+    existing = Employee.query.filter_by(email=email).first()
+    if existing:
+        return jsonify({"error": "Conflict", "message": "Email already exists"}), 409
+
+    new_emp = Employee(name=name, email=email, department=department, salary=salary)
+    db.session.add(new_emp)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success",
+        "message": "Employee created successfully",
+        "employee": new_emp.to_dict()
+    }), 201
+
+
+# 4. UPDATE: PUT /api/employees/<id>
+@app.route('/api/employees/<int:emp_id>', methods=['PUT', 'PATCH'])
+def api_update_employee(emp_id):
+    employee = db.session.get(Employee, emp_id)
+    if not employee:
+        return jsonify({"error": "Employee not found"}), 404
+
+    data = request.get_json() or {}
+    if 'name' in data:
+        employee.name = data['name']
+    if 'email' in data:
+        employee.email = data['email']
+    if 'department' in data:
+        employee.department = data['department']
+    if 'salary' in data:
+        employee.salary = float(data['salary'])
+    if 'is_active' in data:
+        employee.is_active = bool(data['is_active'])
+
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "message": "Employee updated successfully",
+        "employee": employee.to_dict()
+    }), 200
+
+
+# 5. DELETE: DELETE /api/employees/<id>
+@app.route('/api/employees/<int:emp_id>', methods=['DELETE'])
+def api_delete_employee(emp_id):
+    employee = db.session.get(Employee, emp_id)
+    if not employee:
+        return jsonify({"error": "Employee not found"}), 404
+
+    db.session.delete(employee)
+    db.session.commit()
+    return jsonify({
+        "status": "success",
+        "message": f"Employee #{emp_id} deleted successfully"
+    }), 200
+
+
+# =============================================================================
+# STEP 5: Interactive Web UI Dashboard
+# =============================================================================
+@app.route('/', methods=['GET'])
+def index():
+    employees = Employee.query.order_by(Employee.id.asc()).all()
+    return render_template('index.html', employees=employees)
+
 
 if __name__ == '__main__':
-    print("🚀 Starting Flask App on http://127.0.0.1:5000")
-    init_db()
-    app.run(debug=True)
+    init_database()
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)

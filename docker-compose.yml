@@ -1,0 +1,152 @@
+services:
+  # =========================================================================
+  # 1. Web Application Service (Flask + Gunicorn)
+  # =========================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_web
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-super-production-secret-key-change-me}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-super-production-jwt-key-change-me}
+      - DATABASE_URL=postgresql://flaskuser:flaskpassword@postgres:5432/flaskdb
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UPLOAD_FOLDER=/app/capstone/uploads
+    volumes:
+      - media_uploads:/app/capstone/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - flask_network
+    expose:
+      - "5000"
+
+  # =========================================================================
+  # 2. Celery Worker (Background Async Tasks)
+  # =========================================================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_celery_worker
+    restart: unless-stopped
+    command: celery -A capstone.extensions.celery_app worker --loglevel=info --concurrency=4
+    environment:
+      - FLASK_ENV=production
+      - SECRET_KEY=${SECRET_KEY:-super-production-secret-key-change-me}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-super-production-jwt-key-change-me}
+      - DATABASE_URL=postgresql://flaskuser:flaskpassword@postgres:5432/flaskdb
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+      - UPLOAD_FOLDER=/app/capstone/uploads
+    volumes:
+      - media_uploads:/app/capstone/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - flask_network
+
+  # =========================================================================
+  # 3. Celery Beat (Periodic Scheduled Tasks)
+  # =========================================================================
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: flask_celery_beat
+    restart: unless-stopped
+    command: celery -A capstone.extensions.celery_app beat --loglevel=info
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://flaskuser:flaskpassword@postgres:5432/flaskdb
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/1
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - flask_network
+
+  # =========================================================================
+  # 4. PostgreSQL Database
+  # =========================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: flask_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: flaskuser
+      POSTGRES_PASSWORD: flaskpassword
+      POSTGRES_DB: flaskdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flaskuser -d flaskdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flask_network
+    ports:
+      - "5432:5432"
+
+  # =========================================================================
+  # 5. Redis Cache & Message Broker
+  # =========================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: flask_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - flask_network
+    ports:
+      - "6379:6379"
+
+  # =========================================================================
+  # 6. Nginx Reverse Proxy & Static Caching
+  # =========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: flask_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - media_uploads:/app/uploads:ro
+    depends_on:
+      - web
+    networks:
+      - flask_network
+
+networks:
+  flask_network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  redisdata:
+  media_uploads:
