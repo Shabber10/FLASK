@@ -1,10 +1,14 @@
 from __future__ import annotations
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Boolean, DateTime, ForeignKey, Table, Column
 from werkzeug.security import generate_password_hash, check_password_hash
 from capstone.extensions import db
+
+if TYPE_CHECKING:
+    from capstone.models.task import AsyncTaskRecord
+
 
 # Association Table for User-Role Many-to-Many Relationship
 user_roles = Table(
