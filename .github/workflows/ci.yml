@@ -2,9 +2,19 @@ name: Enterprise Flask CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, master, feature/** ]
+    branches:
+      - 'main'
+      - 'master'
+      - 'feature/**'
+      - 'feature/*'
   pull_request:
-    branches: [ main, master ]
+    branches:
+      - 'main'
+      - 'master'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   lint-and-test:
@@ -59,7 +69,7 @@ jobs:
         run: |
           # Stop build if there are Python syntax errors or undefined names
           flake8 capstone tests --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Exit-zero treats all errors as warnings
+          # Exit-zero treats all style warnings without breaking build
           flake8 capstone tests --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
 
       - name: Run Automated Test Suite with Coverage
@@ -74,9 +84,11 @@ jobs:
 
       - name: Upload Coverage Artifacts
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: coverage-report-py${{ matrix.python-version }}
           path: coverage.xml
+          if-no-files-found: ignore
 
   docker-build:
     name: Build & Validate Docker Image
