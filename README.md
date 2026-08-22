@@ -1,22 +1,131 @@
 <div align="center">
   <h1>🧪 30-Day Enterprise Flask Masterclass</h1>
-  <p><strong>A comprehensive, production-grade 30-day curriculum taking you from web architecture fundamentals to advanced microservices, real-time WebSockets, security hardening, and Dockerized production deployments.</strong></p>
+  <p><strong>A production-grade, 30-day masterclass curriculum and deployable microservice repository spanning web architecture, SQLAlchemy 2.0, JWT RBAC auth, Celery background tasks, real-time WebSockets, automated Pytest suites, CI/CD pipelines, and multi-container Docker deployments.</strong></p>
 
+  [![CI/CD Pipeline](https://github.com/Shabber10/FLASK/actions/workflows/ci.yml/badge.svg)](https://github.com/Shabber10/FLASK/actions/workflows/ci.yml)
   [![Flask Version](https://img.shields.io/badge/flask-3.x-blue?style=flat-square&logo=flask)](https://flask.palletsprojects.com/)
+  [![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-2.0%2B-red?style=flat-square&logo=sqlalchemy)](https://docs.sqlalchemy.org/)
   [![Python Version](https://img.shields.io/badge/python-3.10%2B-brightgreen?style=flat-square&logo=python)](https://www.python.org/)
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-  [![Status](https://img.shields.io/badge/Status-100%25%20Completed-success.svg?style=flat-square)]()
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](LICENSE)
+  [![Tests Passing](https://img.shields.io/badge/tests-27%2F27%20passing-success.svg?style=flat-square)]()
 </div>
 
 <br>
 
-Welcome to the **30-Day Enterprise Flask Masterclass**! This repository is designed to be your definitive guide to mastering Flask and Python web engineering. Whether you are building simple microservices, modular monoliths with Blueprints, real-time WebSocket applications, or containerized REST APIs, this step-by-step curriculum provides in-depth explanations, architectural diagrams, runnable code examples, memory shortcuts, and technical interview questions.
+Welcome to the **30-Day Enterprise Flask Masterclass**! This repository serves a dual purpose:
+1. **A Complete 30-Day Step-by-Step Curriculum**: Comprehensive concept deep-dives, beginner guides, memory cheatsheets, interview Q&A, and practice apps for all 30 days.
+2. **A Production-Grade Deployable Software Repository (`capstone/`)**: A unified, containerized microservice equipped with modern SQLAlchemy 2.0 `Mapped[]` models, JWT authentication with token revocation, Celery background workers with Redis, Socket.IO real-time channels, K8s liveness/readiness probes (`/healthz`, `/ready`), Prometheus metrics, root automated test suites, and Docker Compose orchestration.
+
+---
+
+## 🏛️ Production System Architecture
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer["Client & Consumers"]
+        Browser["🌐 Web Browser / SPA"]
+        Mobile["📱 Mobile App"]
+        WSClient["⚡ WebSocket Client"]
+    end
+
+    subgraph ReverseProxy["Edge / Reverse Proxy Layer"]
+        Nginx["🛡️ Nginx Reverse Proxy (Port 80)\n- SSL Termination\n- Rate Limiting (10 req/s)\n- Static Media Caching (/api/v1/media/)"]
+    end
+
+    subgraph ApplicationLayer["Application Core (Gunicorn WSGI)"]
+        Flask["🧪 Flask 3.x Application Factory\n- Blueprints (/api/v1/*)\n- JWT Auth & Revocation\n- Role-Based Access Control (RBAC)\n- Prometheus Metrics (/metrics)"]
+        SocketIO["🔌 Flask-SocketIO Engine\n- Real-time Event Rooms\n- Task Broadcast Notifications"]
+    end
+
+    subgraph DataAndAsync["Persistence & Async Processing Layer"]
+        Postgres[("🐘 PostgreSQL 16\n- User & Role Schemas (SQLAlchemy 2.0)\n- Async Task DB Records\n- Audit Trail Logs")]
+        Redis[("⚡ Redis 7\n- Application Cache (Flask-Caching)\n- Celery Message Broker & Backend\n- Rate-Limiter Storage")]
+        Worker["⚙️ Celery Worker\n- Async PDF Generation\n- Transactional Email Dispatch"]
+        Beat["⏰ Celery Beat\n- Periodic Token Blocklist Cleanup"]
+    end
+
+    Browser -->|HTTP Requests| Nginx
+    Mobile -->|REST API Calls| Nginx
+    WSClient -->|WebSocket Handshake| Nginx
+
+    Nginx -->|Proxy HTTP :5000| Flask
+    Nginx -->|Upgrade /socket.io/| SocketIO
+
+    Flask -->|SQLAlchemy 2.0 ORM| Postgres
+    Flask -->|Cache & JWT Blacklist| Redis
+    Flask -->|Dispatch .delay()| Redis
+
+    Redis -->|Consume Tasks| Worker
+    Beat -->|Schedule Jobs| Redis
+    Worker -->|Update Status| Postgres
+    Worker -->|Broadcast Progress| SocketIO
+```
+
+---
+
+## 🚀 Quickstart: Running the Capstone Microservice
+
+### Option 1: Quickstart with Docker Compose (Recommended)
+Spin up the entire stack (Flask API, PostgreSQL, Redis, Celery Worker, Celery Beat, and Nginx) with a single command:
+
+```bash
+# 1. Clone repository
+git clone https://github.com/Shabber10/FLASK.git
+cd FLASK
+
+# 2. Configure environment
+cp .env.example .env
+
+# 3. Build and launch multi-container stack
+docker-compose up -d --build
+
+# 4. Check services status
+docker-compose ps
+```
+The API is now live at `http://localhost/` with Nginx reverse proxying to Gunicorn!
+
+---
+
+### Option 2: Local Python Development
+
+```bash
+# 1. Create and activate virtual environment
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Initialize database & seed test users
+flask --app capstone.wsgi init-db
+flask --app capstone.wsgi seed-db --count 10
+
+# 4. Run application
+python -m capstone.wsgi
+```
+
+---
+
+## 🧪 Automated Testing Suite (`tests/`)
+
+Run the complete root-level automated test suite covering authentication, REST APIs, Celery workers, WebSockets, health probes, and model factories:
+
+```bash
+# Run all 27 automated tests
+pytest -v
+
+# Run with test coverage report
+pytest -v --cov=capstone --cov-report=term-missing
+```
 
 ---
 
 ## 📑 Master Curriculum Index & Topic Syllabus
 
-For a detailed topic-by-topic audit mapping every subtopic to file locations, see the dedicated [FLASK_CURRICULUM_INDEX_AND_AUDIT.md](FLASK_CURRICULUM_INDEX_AND_AUDIT.md).
+For a detailed topic-by-topic audit mapping every subtopic to file locations, see the dedicated [FLASK_CURRICULUM_INDEX_AND_AUDIT.md](FLASK_CURRICULUM_INDEX_AND_AUDIT.md) and [Modern Flask & SQLAlchemy 2.0 Guide](docs/MODERN_FLASK_AND_SQLALCHEMY_2_GUIDE.md).
 
 ```
  30-DAY ENTERPRISE FLASK MASTERCLASS
@@ -32,39 +141,16 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 
 ---
 
-## 🚀 Getting Started
-
-### Prerequisites & Setup
-1. Clone this repository to your local environment:
-   ```bash
-   git clone https://github.com/Shabber10/FLASK.git
-   cd FLASK
-   ```
-2. Create and activate a Python virtual environment:
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On macOS/Linux:
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
----
-
 ## 📚 Detailed Syllabus & Daily Subtopics
 
 ### 🟢 Phase 1: Core Web & Flask Architecture (Days 01 – 05)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
-| **01** | **Web Architecture, HTTP & Flask Internals** | Client-Server Architecture, Static vs Dynamic Sites, WWW, DNS, URL Anatomy, WSGI (PEP 3333), Flask Microframework, Restaurant Mental Model, `render_template()` Intro | [Day 01](DAY%2001%20-%20Introduction%20to%20Flask%20and%20Web%20Architecture/0.%20Web%20Fundamentals%20for%20Absolute%20Beginners.md) |
-| **02** | **Advanced URL Routing, Converters & Requests** | Werkzeug `url_map`, Built-in Converters, Custom `EvenNumberConverter`, `redirect()` vs `url_for()`, `request.args` (GET), `request.form` (POST), `request.get_json()` (PUT/DELETE), RAM vs DB Storage, `jsonify()` | [Day 02](DAY%2002%20-%20Routing,%20Request%20and%20Response%20Objects/0.%20Routing%20and%20Request-Response%20Fundamentals%20for%20Beginners.md) |
-| **03** | **Request Lifecycle & Context Locals** | Application Context (`current_app`, `g`), Request Context (`request`, `session`), Lifecycle Hooks (`before_request`, `after_request`), Request Timing Middleware | [Day 03](DAY%2003%20-%20Request%20Lifecycle%20and%20Context%20Locals/0.%20Contexts%20and%20Request%20Lifecycle%20Fundamentals%20for%20Beginners.md) |
-| **04** | **Jinja2 Templating Engine Masterclass** | `render_template()` syntax, Jinja2 Delimiters (`{{ }}`, `{% %}`), `if/else` & `for` loops, Static files with `url_for('static')`, Template Inheritance (`extends`, `block`), Inclusion (`include`) | [Day 04](DAY%2004%20-%20Jinja2%20Templating%20Engine%20Masterclass/0.%20Jinja2%20Templating%20Fundamentals%20for%20Beginners.md) |
+| :---: | :--- | :--- | :--- |
+| **01** | **Introduction to Flask & Web Architecture** | Client-Server Model, HTTP Request/Response, WSGI Protocol, Virtual Environments, Minimal App, Debug Mode | [Day 01](DAY%2001%20-%20Introduction%20to%20Flask%20and%20Web%20Architecture/0.%20Flask%20and%20Web%20Architecture%20Fundamentals%20for%20Beginners.md) |
+| **02** | **Routing, Request & Response Objects** | Dynamic URLs, Converters (`int`, `path`, `uuid`), HTTP Methods, `request.args`, `request.form`, `request.json`, `make_response`, Custom Headers | [Day 02](DAY%2002%20-%20Routing,%20Request%20and%20Response%20Objects/0.%20Routing,%20Request%20and%20Response%20Fundamentals%20for%20Beginners.md) |
+| **03** | **Request Lifecycle & Context Locals** | Application Context (`current_app`, `g`), Request Context (`request`, `session`), Hooks (`before_request`, `after_request`, `teardown_request`) | [Day 03](DAY%2003%20-%20Request%20Lifecycle%20and%20Context%20Locals/0.%20Request%20Lifecycle%20and%20Context%20Locals%20Fundamentals%20for%20Beginners.md) |
+| **04** | **Jinja2 Templating Engine Masterclass** | Jinja2 Delimiters (`{{ }}`, `{% %}`), `if/else` & `for` loops, Static files with `url_for('static')`, Template Inheritance (`extends`, `block`), Inclusion (`include`) | [Day 04](DAY%2004%20-%20Jinja2%20Templating%20Engine%20Masterclass/0.%20Jinja2%20Templating%20Fundamentals%20for%20Beginners.md) |
 | **05** | **Web Forms, Validation & Flask-WTF** | CSRF Tokens, `FlaskForm` classes, Input Fields & Built-in Validators, Custom Field Validators, File Uploads with WTForms | [Day 05](DAY%2005%20-%20Web%20Forms,%20Validation%20and%20Flask-WTF/0.%20Web%20Forms%20and%20Flask-WTF%20Fundamentals%20for%20Beginners.md) |
 
 ---
@@ -72,7 +158,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🟡 Phase 2: Database Integration, ORMs & Migrations (Days 06 – 10)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **06** | **Database Fundamentals & Flask-SQLAlchemy** | ORM vs Raw SQL, `db.Model`, Column Types, Constraints, Table Creation, Database Sessions, CRUD Operations (`add`, `commit`, `delete`) | [Day 06](DAY%2006%20-%20Database%20Fundamentals%20and%20Flask-SQLAlchemy/0.%20Database%20and%20ORM%20Fundamentals%20for%20Beginners.md) |
 | **07** | **Advanced Querying, Filtering & Transactions** | Filter Operators (`like`, `in_`, `between`), Logical `and_`/`or_`, Ordering, Pagination (`paginate`), Aggregations (`count`, `avg`), Session Transactions & Rollback | [Day 07](DAY%2007%20-%20Advanced%20Querying,%20Filtering%20and%20Transactions/0.%20Advanced%20Querying%20Fundamentals%20for%20Beginners.md) |
 | **08** | **Advanced Relationships, Cascades & Lazy Loading** | One-to-Many (`db.ForeignKey`), One-to-One, Many-to-Many Association Tables, Cascade Deletes (`all, delete-orphan`), Lazy Loading (`select`, `joined`, `subquery`, `dynamic`) | [Day 08](DAY%2008%20-%20Advanced%20Relationships,%20Cascades%20and%20Lazy%20Loading/0.%20Database%20Relationships%20Fundamentals%20for%20Beginners.md) |
@@ -84,7 +170,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🔵 Phase 3: Modular Architecture & Design Patterns (Days 11 – 15)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **11** | **Modular Development with Flask Blueprints** | Monolith vs Blueprints, `Blueprint` definition, Route Registration, `url_prefix`, Blueprint Template & Static Isolation, Subdomain Dispatching | [Day 11](DAY%2011%20-%20Modular%20Development%20with%20Flask%20Blueprints/0.%20Flask%20Blueprints%20Fundamentals%20for%20Beginners.md) |
 | **12** | **Application Factory Pattern & Environment Config** | Application Factory (`create_app`), Circular Import Prevention, Config Classes (`DevConfig`, `ProdConfig`), Environment Variables (`.env`, `.flaskenv`) | [Day 12](DAY%2012%20-%20Application%20Factory%20Pattern%20and%20Environment%20Config/0.%20Application%20Factory%20and%20Config%20Fundamentals%20for%20Beginners.md) |
 | **13** | **Custom CLI Commands & Flask Extensions** | `@app.cli.command`, Click Command Arguments & Options, Authoring Custom Flask Extensions (`init_app` pattern) | [Day 13](DAY%2013%20-%20Custom%20CLI%20Commands%20and%20Flask%20Extensions/0.%20Custom%20CLI%20Commands%20and%20Extensions%20Fundamentals%20for%20Beginners.md) |
@@ -96,7 +182,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🟣 Phase 4: RESTful APIs, Microservices & JWT Auth (Days 16 – 20)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **16** | **REST API Architecture & HTTP Status Codes** | REST Principles (Statelessness, Uniform Interface), HTTP Status Codes (2xx, 4xx, 5xx), Standardized JSON Response Envelopes | [Day 16](DAY%2016%20-%20REST%20API%20Architecture%20and%20HTTP%20Status%20Codes/0.%20REST%20API%20Architecture%20and%20Status%20Codes%20Fundamentals%20for%20Beginners.md) |
 | **17** | **Data Serialization & Validation with Marshmallow** | Marshmallow Schemas, Dump vs Load, Field Types, Custom Validation (`@validates`), Nested Schemas, `SQLAlchemyAutoSchema` | [Day 17](DAY%2017%20-%20Data%20Serialization%20and%20Validation%20with%20Marshmallow/0.%20Serialization%20and%20Marshmallow%20Fundamentals%20for%20Beginners.md) |
 | **18** | **RESTful Extensions (Flask-RESTful & Flask-Smorest)** | Class-Based Views (`Resource`), HTTP Verb Mapping, `Flask-Smorest`, Automatic Swagger UI OpenAPI Specs (`@blp.response`, `@blp.arguments`) | [Day 18](DAY%2018%20-%20RESTful%20Extensions%20and%20OpenAPI%20Documentation/0.%20REST%20Extensions%20and%20OpenAPI%20Documentation%20Fundamentals%20for%20Beginners.md) |
@@ -108,7 +194,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🔴 Phase 5: Asynchronous Operations, Caching & Real-Time Web (Days 21 – 25)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **21** | **Background Processing with Celery & Redis** | Async Queues, Celery Architecture (Producer, Broker, Worker, Result Backend), `@celery.task`, `.delay()`, Task State Tracking | [Day 21](DAY%2021%20-%20Background%20Processing%20with%20Celery%20and%20Redis/0.%20Celery%20and%20Background%20Processing%20Fundamentals%20for%20Beginners.md) |
 | **22** | **Periodic Tasks & Scheduled Jobs with Celery Beat** | Celery Beat Scheduler, Cron Schedules (`crontab`), Task Retries with Backoff (`autoretry_for`), Dead Letter Error Callbacks | [Day 22](DAY%2022%20-%20Periodic%20Tasks%20and%20Scheduled%20Jobs/0.%20Periodic%20Tasks%20and%20Scheduled%20Jobs%20Fundamentals%20for%20Beginners.md) |
 | **23** | **Application Caching Strategies with Flask-Caching** | In-Memory vs Redis Caching, `Flask-Caching`, View Caching (`@cache.cached`), Memoization (`@cache.memoize`), Cache Invalidation Triggers | [Day 23](DAY%2023%20-%20Application%20Caching%20Strategies/0.%20Caching%20Strategies%20Fundamentals%20for%20Beginners.md) |
@@ -120,7 +206,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🛡️ Phase 6: Enterprise Security, Observability & Performance Tuning (Days 26 – 28)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **26** | **Enterprise Flask Security Hardening** | OWASP Top 10, Security Headers (`Flask-Talisman`, CSP, HSTS), Dynamic CSP Nonces, HTML Sanitization (`Bleach`), Security Audits (`bandit`, `pip-audit`) | [Day 26](DAY%2026%20-%20Enterprise%20Flask%20Security%20Hardening/0.%20Web%20Security%20and%20Flask%20Hardening%20Fundamentals%20for%20Beginners.md) |
 | **27** | **Error Handling, Logging & Observability** | Python Logging Levels, Structured JSON Logging (`dictConfig`), Request Correlation IDs (`X-Request-ID`), Centralized Error Handlers (`@app.errorhandler`) | [Day 27](DAY%2027%20-%20Error%20Handling,%20Logging%20and%20Observability/0.%20Error%20Handling%20and%20Observability%20Fundamentals%20for%20Beginners.md) |
 | **28** | **Flask Performance Tuning & Database Optimization** | N+1 Query Problem, Eager Loading (`joinedload`, `selectinload`), Database Connection Pool Tuning, Gzip Response Compression (`Flask-Compress`), CPU Profiling (`ProfilerMiddleware`) | [Day 28](DAY%2028%20-%20Flask%20Performance%20Tuning%20and%20Database%20Optimization/0.%20Performance%20Tuning%20and%20Optimization%20Fundamentals%20for%20Beginners.md) |
@@ -130,9 +216,9 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 ### 🧪 Phase 7: Testing, CI/CD & Capstone Production Project (Days 29 – 30)
 
 | Day | Topic Name | Subtopics Covered | Link to Module |
-| :---: | :--- | :--- | :---: |
+| :---: | :--- | :--- | :--- |
 | **29** | **Automated Testing Masterclass with Pytest** | Testing Pyramid, Pytest Fixtures (`conftest.py`), Route Testing (`app.test_client()`), Database Mocking (`pytest-mock`), Coverage (`pytest-cov`), GitHub Actions CI | [Day 29](DAY%2029%20-%20Automated%20Testing%20Masterclass%20with%20Pytest/0.%20Automated%20Testing%20and%20Pytest%20Fundamentals%20for%20Beginners.md) |
-| **30** | **Production Capstone & Enterprise Deployment** | 12-Factor App Rules, Production Stack (Nginx + Gunicorn + Flask), Docker Multi-Stage Builds, `docker-compose.yml`, Kubernetes Probes (`/healthz`, `/readyz`), Capstone Microservice | [Day 30](DAY%2030%20-%20Production%20Capstone%20and%20Deployment/0.%20Production%20Deployment%20and%20Architecture%20Fundamentals%20for%20Beginners.md) |
+| **30** | **Production Capstone & Enterprise Deployment** | 12-Factor App Rules, Production Stack (Nginx + Gunicorn + Flask), Docker Multi-Stage Builds, `docker-compose.yml`, Kubernetes Probes (`/healthz`, `/ready`), Capstone Microservice | [Day 30](DAY%2030%20-%20Production%20Capstone%20and%20Deployment/0.%20Production%20Deployment%20and%20Architecture%20Fundamentals%20for%20Beginners.md) |
 
 ---
 
@@ -143,7 +229,7 @@ For a detailed topic-by-topic audit mapping every subtopic to file locations, se
 - **Security & Auth**: Flask-WTF, WTForms, Flask-Login, Flask-JWT-Extended, Flask-Talisman, Flask-Limiter, Passlib, Bcrypt
 - **API Tools**: Flask-RESTful, Marshmallow, Flask-CORS, Flask-Smorest (OpenAPI/Swagger)
 - **Async & Realtime**: Celery, Redis, Flask-SocketIO, Gevent / Eventlet
-- **Testing & Deployment**: Pytest, Pytest-Flask, Coverage, Gunicorn, Nginx, Docker, Docker-Compose
+- **Testing & Deployment**: Pytest, Pytest-Flask, Pytest-Cov, Factory-Boy, Gunicorn, Nginx, Docker, Docker Compose, GitHub Actions
 
 ---
 

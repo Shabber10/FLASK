@@ -47,3 +47,6 @@ Thumbs.db
 *.swp
 *~
 scratch/
+capstone/uploads/*
+!capstone/uploads/.gitkeep
+

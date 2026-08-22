@@ -1,16 +1,18 @@
 """
 ===============================================================================
-Day 19 Practice Script: Complete JWT Auth Server with Refresh & Blacklisting
+Day 19 Practice Script: Production JWT Auth Server with Redis Revocation & Rotation
 ===============================================================================
-This script starts from pure zero basics for beginner Flask developers.
+This script provides an enterprise-ready JWT authentication service.
 
 What this script demonstrates step-by-step:
-1. STEP 1: Configuring `Flask-JWT-Extended` with Access & Refresh Token Lifespans.
-2. STEP 2: Defining JWT Callbacks & Error Handlers (`@jwt.token_in_blocklist_loader`).
-3. STEP 3: Initializing in-memory database with salted password hashes (`generate_password_hash`).
-4. STEP 4: Auth Endpoints (`login` token pair, `refresh` access token, `logout` JTI blocklisting).
-5. STEP 5: Protected API Profile endpoint (`GET /api/v1/profile`) with `@jwt_required()`.
-6. STEP 6: Interactive JWT Token Tester Portal UI rendering `templates/index.html`.
+1. STEP 1: Configuring Flask-JWT-Extended with environment-driven secrets and lifespans.
+2. STEP 2: Connecting to Redis for distributed JTI blocklisting (with graceful local fallback).
+3. STEP 3: String identity serialization and @jwt.user_lookup_loader.
+4. STEP 4: Login with brute-force rate-limiting (Flask-Limiter).
+5. STEP 5: Refresh Token Rotation (revoking old refresh JTI and minting new pair).
+6. STEP 6: Revoking Access / Refresh tokens on logout with Redis TTL expiration.
+7. STEP 7: Short-lived token testing endpoint to demonstrate token expiration behavior.
+8. STEP 8: Interactive JWT Tester Web Dashboard rendering templates/index.html.
 
 How to run this script:
 1. Open your terminal in this directory.
@@ -18,56 +20,112 @@ How to run this script:
 3. Open your browser and navigate to: http://127.0.0.1:5000/
 """
 
-from datetime import timedelta
+import os
+from datetime import datetime, timezone, timedelta
 from flask import Flask, jsonify, request, render_template
 from flask_jwt_extended import (
     JWTManager, create_access_token, create_refresh_token,
-    jwt_required, get_jwt_identity, get_jwt
+    jwt_required, get_jwt_identity, get_jwt, current_user
 )
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 
 app = Flask(__name__)
 
 # =============================================================================
-# STEP 1: JWT Configuration Settings
+# STEP 1: JWT & Application Configuration (Day 12 Environment Pattern)
 # =============================================================================
-app.config['SECRET_KEY'] = 'day19-jwt-masterclass-secret'
-app.config['JWT_SECRET_KEY'] = 'jwt-signing-secret-key-32bytes'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'day19-jwt-masterclass-secret')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-signing-secret-key-32bytes')
 app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(minutes=15)
 app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(days=7)
+app.config['JWT_DECODE_LEEWAY'] = timedelta(seconds=10)
 
 jwt = JWTManager(app)
 
+# Rate Limiter (Day 20 Pattern)
+limiter = Limiter(
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
+limiter.init_app(app)
+
 
 # =============================================================================
-# STEP 3: In-Memory Database & JTI Token Revocation Blocklist Set
+# STEP 2: Redis Blocklist Connection with Graceful In-Memory Fallback
+# =============================================================================
+REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+redis_client = None
+in_memory_blocklist = set()
+
+try:
+    import redis
+    client = redis.Redis.from_url(REDIS_URL, decode_responses=True, socket_connect_timeout=1)
+    client.ping()
+    redis_client = client
+    print(f"✓ Connected to Redis at {REDIS_URL} for distributed token revocation.")
+except Exception as e:
+    print(f"ℹ Redis not reachable ({e}). Using local in-memory blocklist fallback.")
+
+
+def store_revoked_token(jti: str, exp_timestamp: float) -> None:
+    """Store revoked JTI with TTL matching token lifespan."""
+    now_timestamp = datetime.now(timezone.utc).timestamp()
+    ttl_seconds = max(int(exp_timestamp - now_timestamp), 1)
+
+    if redis_client:
+        redis_client.setex(f"jwt:revoked:{jti}", ttl_seconds, "true")
+    else:
+        in_memory_blocklist.add(jti)
+
+
+def is_token_revoked(jti: str) -> bool:
+    """Check if JTI exists in Redis or local fallback blocklist."""
+    if redis_client:
+        return redis_client.get(f"jwt:revoked:{jti}") is not None
+    return jti in in_memory_blocklist
+
+
+# =============================================================================
+# STEP 3: User Database & Identity Serialization Callbacks
 # =============================================================================
 users_db = {
-    "alice_dev": {"id": 101, "password": generate_password_hash("DevPass123!"), "role": "Developer"},
-    "admin_boss": {"id": 102, "password": generate_password_hash("AdminPass123!"), "role": "Admin"}
+    101: {"id": 101, "username": "alice_dev", "password": generate_password_hash("DevPass123!"), "role": "Developer"},
+    102: {"id": 102, "username": "admin_boss", "password": generate_password_hash("AdminPass123!"), "role": "Admin"}
 }
-jwt_blocklist = set()
 
+@jwt.user_lookup_loader
+def user_lookup_callback(_jwt_header, jwt_data):
+    """Automatically populates flask_jwt_extended.current_user."""
+    user_id = int(jwt_data["sub"])
+    return users_db.get(user_id)
 
-# =============================================================================
-# STEP 2: JWT Callbacks & Error Handlers
-# =============================================================================
 @jwt.token_in_blocklist_loader
-def check_if_token_revoked(jwt_header, jwt_payload):
-    """Step 2a: Callback executing on every request to verify if JTI is blacklisted."""
+def check_if_token_revoked(_jwt_header, jwt_payload: dict) -> bool:
+    """Callback executing on every request to verify if JTI is revoked in Redis."""
     jti = jwt_payload['jti']
-    return jti in jwt_blocklist
+    return is_token_revoked(jti)
 
+
+# Standard Error Responses
 @jwt.expired_token_loader
 def expired_token_callback(jwt_header, jwt_payload):
     return jsonify({
-        "error": {"code": 401, "type": "TOKEN_EXPIRED", "message": "The access token has expired."}
+        "error": {"code": 401, "type": "TOKEN_EXPIRED", "message": "The access token has expired. Refresh your session."}
+    }), 401
+
+@jwt.revoked_token_loader
+def revoked_token_callback(jwt_header, jwt_payload):
+    return jsonify({
+        "error": {"code": 401, "type": "TOKEN_REVOKED", "message": "Token has been revoked. Please log in again."}
     }), 401
 
 @jwt.invalid_token_loader
 def invalid_token_callback(error):
     return jsonify({
-        "error": {"code": 401, "type": "INVALID_TOKEN", "message": "Signature verification failed."}
+        "error": {"code": 401, "type": "INVALID_TOKEN", "message": f"Signature verification failed: {error}"}
     }), 401
 
 @jwt.unauthorized_loader
@@ -78,22 +136,27 @@ def missing_token_callback(error):
 
 
 # =============================================================================
-# STEP 4: REST API Authentication Endpoints (Login, Refresh, Logout)
+# STEP 4: Authentication Endpoints
 # =============================================================================
 
-# POST /api/v1/auth/login -> Issues Access + Refresh Token Pair
 @app.route('/api/v1/auth/login', methods=['POST'])
+@limiter.limit("5 per minute")  # Protect against brute force attacks
 def login():
-    """Step 4a: Validates credentials and returns Access + Refresh Token Pair."""
-    data = request.get_json() or {}
+    """Validates credentials and returns Access + Refresh Token Pair."""
+    data = request.get_json(silent=True) or {}
     username = data.get('username')
     password = data.get('password')
 
-    user = users_db.get(username)
+    user = next((u for u in users_db.values() if u["username"] == username), None)
     if user and check_password_hash(user['password'], password):
-        # Create token pair embedding user.id as identity
-        access_token = create_access_token(identity=user['id'], additional_claims={"role": user['role']})
-        refresh_token = create_refresh_token(identity=user['id'])
+        # Explicit string identity typing
+        user_id_str = str(user['id'])
+        
+        access_token = create_access_token(
+            identity=user_id_str,
+            additional_claims={"role": user['role']}
+        )
+        refresh_token = create_refresh_token(identity=user_id_str)
         
         return jsonify({
             "status": "success",
@@ -107,72 +170,91 @@ def login():
     return jsonify({"error": "Invalid username or password"}), 401
 
 
-# POST /api/v1/auth/refresh -> Generates new Access Token using Refresh Token
 @app.route('/api/v1/auth/refresh', methods=['POST'])
-@jwt_required(refresh=True)  # Requires valid Refresh Token in Authorization header!
+@jwt_required(refresh=True)
 def refresh_access_token():
-    """Step 4b: Generates a new 15-minute Access Token using Refresh Token."""
-    current_user_id = get_jwt_identity()
-    
-    new_access_token = create_access_token(identity=current_user_id)
+    """
+    Step 5: Refresh Token Rotation:
+    Revokes the current refresh token and issues a brand new token pair.
+    """
+    jwt_data = get_jwt()
+    old_refresh_jti = jwt_data['jti']
+    user_identity = get_jwt_identity()
+    user = users_db.get(int(user_identity))
+
+    # Revoke old refresh token JTI in Redis
+    store_revoked_token(old_refresh_jti, jwt_data['exp'])
+
+    # Mint fresh token pair
+    new_access_token = create_access_token(
+        identity=user_identity,
+        additional_claims={"role": user['role'] if user else "User"}
+    )
+    new_refresh_token = create_refresh_token(identity=user_identity)
+
     return jsonify({
         "status": "success",
+        "message": "Refresh token rotated successfully",
         "access_token": new_access_token,
+        "refresh_token": new_refresh_token,
         "token_type": "Bearer"
     }), 200
 
 
-# POST /api/v1/auth/logout -> Blacklists current token's JTI ID
 @app.route('/api/v1/auth/logout', methods=['POST'])
-@jwt_required()
+@jwt_required(verify_type=False)
 def logout():
-    """Step 4c: Adds active token JTI UUID to revocation blocklist set."""
-    jti = get_jwt()['jti']
-    jwt_blocklist.add(jti)  # Blacklist JTI
-    return jsonify({
-        "status": "success",
-        "message": f"Token JTI '{jti}' successfully revoked. Logged out."
-    }), 200
-
-
-# =============================================================================
-# STEP 5: Protected API Resource Endpoint
-# =============================================================================
-@app.route('/api/v1/profile', methods=['GET'])
-@jwt_required()  # Requires valid non-revoked Access Token!
-def get_profile():
-    """Step 5: Returns protected user profile info from Bearer token claims."""
-    user_id = get_jwt_identity()
-    claims = get_jwt()
+    """Revokes active token (Access or Refresh) by adding its JTI to Redis."""
+    jwt_data = get_jwt()
+    jti = jwt_data['jti']
+    token_type = jwt_data['type']
+    
+    store_revoked_token(jti, jwt_data['exp'])
     
     return jsonify({
         "status": "success",
+        "message": f"{token_type.capitalize()} token JTI '{jti}' successfully revoked."
+    }), 200
+
+
+@app.route('/api/v1/profile', methods=['GET'])
+@jwt_required()
+def get_profile():
+    """Returns protected user profile info from Bearer token claims."""
+    claims = get_jwt()
+    return jsonify({
+        "status": "success",
         "data": {
-            "user_id": user_id,
+            "user_id": current_user['id'],
+            "username": current_user['username'],
             "role": claims.get('role'),
-            "jti": claims.get('jti'),
-            "token_type": claims.get('type')
+            "jti": claims.get('jti')
         }
     }), 200
 
 
+@app.route('/api/v1/auth/test-short-expiry', methods=['POST'])
+def test_short_token():
+    """Helper route: generates an access token with a 5-second lifetime to test 401 expiration."""
+    short_token = create_access_token(
+        identity="101",
+        expires_delta=timedelta(seconds=5),
+        additional_claims={"role": "Tester"}
+    )
+    return jsonify({
+        "message": "Token expires in 5 seconds. Use with /api/v1/profile immediately, then re-try in 6 seconds to see 401 TOKEN_EXPIRED.",
+        "short_access_token": short_token
+    }), 200
+
+
 # =============================================================================
-# STEP 6: Interactive Web UI Tester Dashboard Route Handler (render_template)
+# STEP 8: Interactive Web UI Dashboard
 # =============================================================================
-@app.route('/')
-def home():
-    """Step 6: Renders templates/index.html dashboard."""
+@app.route('/', methods=['GET'])
+def index():
     return render_template('index.html')
 
 
-# =============================================================================
-# Main Entrypoint
-# =============================================================================
 if __name__ == '__main__':
-    print("=" * 75)
-    print("🚀 Starting Day 19 JWT Authentication Server Application...")
-    print("🌐 Dashboard UI at: http://127.0.0.1:5000/")
-    print("🔑 Login Endpoint at: http://127.0.0.1:5000/api/v1/auth/login")
-    print("👤 Protected Profile at: http://127.0.0.1:5000/api/v1/profile")
-    print("=" * 75)
-    app.run(host='127.0.0.1', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False)

@@ -1,24 +1,151 @@
 {% extends "base.html" %}
 
-{% block title %}JWT Auth Server Dashboard - Day 19{% endblock %}
+{% block title %}Interactive JWT Authentication & Token Tester - Day 19{% endblock %}
 
 {% block content %}
-    <p>Authentication Engine: <span class="badge">Flask-JWT-Extended</span></p>
+    <p>Authentication Engine: <span class="badge">Flask-JWT-Extended + Redis TTL Blocklist</span></p>
 
-    <h3>Pre-seeded Login Accounts:</h3>
-    <ul>
-        <li>Username: <code>alice_dev</code> | Password: <code>DevPass123!</code></li>
-        <li>Username: <code>admin_boss</code> | Password: <code>AdminPass123!</code></li>
-    </ul>
+    <div style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
+        <h4 style="margin-top:0;">Pre-seeded Test Accounts:</h4>
+        <ul style="margin-bottom:0;">
+            <li><strong>Developer:</strong> <code>username: alice_dev</code> | <code>password: DevPass123!</code></li>
+            <li><strong>Admin:</strong> <code>username: admin_boss</code> | <code>password: AdminPass123!</code></li>
+        </ul>
+    </div>
 
-    <h3>Available Endpoints:</h3>
-    <table>
-        <thead><tr><th>Verb</th><th>Endpoint</th><th>Description</th></tr></thead>
-        <tbody>
-            <tr><td><code>POST</code></td><td><code>/api/v1/auth/login</code></td><td>Issue Access & Refresh Token Pair</td></tr>
-            <tr><td><code>POST</code></td><td><code>/api/v1/auth/refresh</code></td><td>Generate new Access Token using Refresh Token</td></tr>
-            <tr><td><code>GET</code></td><td><code>/api/v1/profile</code></td><td>Protected Profile (Requires <code>Authorization: Bearer &lt;access_token&gt;</code>)</td></tr>
-            <tr><td><code>POST</code></td><td><code>/api/v1/auth/logout</code></td><td>Revoke Token JTI in Blocklist</td></tr>
-        </tbody>
-    </table>
+    <h3>⚡ Interactive Token Test Console</h3>
+    
+    <!-- 1. Login Form -->
+    <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+        <h4 style="margin-top:0;">1. Authenticate & Obtain Token Pair (POST /api/v1/auth/login)</h4>
+        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+            <input id="login-user" type="text" value="alice_dev" placeholder="Username" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+            <input id="login-pass" type="password" value="DevPass123!" placeholder="Password" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
+            <button onclick="doLogin()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold;">Login</button>
+        </div>
+    </div>
+
+    <!-- 2. Tokens Display -->
+    <div style="border: 1px solid #dee2e6; padding: 15px; border-radius: 6px; margin-bottom: 15px;">
+        <h4 style="margin-top:0;">Active Tokens in Client Memory:</h4>
+        <div style="margin-bottom: 8px;">
+            <label style="font-weight:bold; font-size:12px;">Access Token (15 min):</label>
+            <textarea id="access-token-box" rows="2" style="width: 100%; font-family: monospace; font-size: 11px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" readonly placeholder="Login to receive access token..."></textarea>
+        </div>
+        <div>
+            <label style="font-weight:bold; font-size:12px;">Refresh Token (7 days):</label>
+            <textarea id="refresh-token-box" rows="2" style="width: 100%; font-family: monospace; font-size: 11px; padding: 6px; border: 1px solid #ccc; border-radius: 4px;" readonly placeholder="Login to receive refresh token..."></textarea>
+        </div>
+    </div>
+
+    <!-- 3. Action Buttons -->
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 15px;">
+        <button onclick="getProfile()" style="background: #2980b9; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            2. Get Protected Profile (GET /api/v1/profile)
+        </button>
+        <button onclick="doRefresh()" style="background: #8e44ad; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            3. Rotate Refresh Token (POST /api/v1/auth/refresh)
+        </button>
+        <button onclick="doLogout()" style="background: #c0392b; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            4. Revoke Token on Logout (POST /api/v1/auth/logout)
+        </button>
+        <button onclick="getShortToken()" style="background: #d35400; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+            5. Test 5s Expiry Token
+        </button>
+    </div>
+
+    <!-- 4. Response Output Box -->
+    <div>
+        <h4>API Response Log:</h4>
+        <pre id="api-output" style="background: #2c3e50; color: #2ecc71; padding: 15px; border-radius: 6px; font-size: 12px; max-height: 250px; overflow-y: auto;">Ready. Click Login to start testing.</pre>
+    </div>
+
+    <script>
+        let currentAccessToken = "";
+        let currentRefreshToken = "";
+
+        function logOutput(data, status = 200) {
+            const out = document.getElementById("api-output");
+            out.innerText = `[HTTP ${status}]\n` + JSON.stringify(data, null, 2);
+            if (status >= 400) {
+                out.style.color = "#e74c3c";
+            } else {
+                out.style.color = "#2ecc71";
+            }
+        }
+
+        async function doLogin() {
+            const username = document.getElementById("login-user").value;
+            const password = document.getElementById("login-pass").value;
+
+            const res = await fetch("/api/v1/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username, password })
+            });
+            const data = await res.json();
+            logOutput(data, res.status);
+
+            if (res.ok) {
+                currentAccessToken = data.access_token;
+                currentRefreshToken = data.refresh_token;
+                document.getElementById("access-token-box").value = currentAccessToken;
+                document.getElementById("refresh-token-box").value = currentRefreshToken;
+            }
+        }
+
+        async function getProfile() {
+            if (!currentAccessToken) {
+                alert("Please log in first to get an access token!");
+                return;
+            }
+            const res = await fetch("/api/v1/profile", {
+                method: "GET",
+                headers: { "Authorization": `Bearer ${currentAccessToken}` }
+            });
+            const data = await res.json();
+            logOutput(data, res.status);
+        }
+
+        async function doRefresh() {
+            if (!currentRefreshToken) {
+                alert("No refresh token available. Please log in first!");
+                return;
+            }
+            const res = await fetch("/api/v1/auth/refresh", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${currentRefreshToken}` }
+            });
+            const data = await res.json();
+            logOutput(data, res.status);
+
+            if (res.ok) {
+                currentAccessToken = data.access_token;
+                currentRefreshToken = data.refresh_token;
+                document.getElementById("access-token-box").value = currentAccessToken;
+                document.getElementById("refresh-token-box").value = currentRefreshToken;
+            }
+        }
+
+        async function doLogout() {
+            if (!currentAccessToken) {
+                alert("No active access token to revoke!");
+                return;
+            }
+            const res = await fetch("/api/v1/auth/logout", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${currentAccessToken}` }
+            });
+            const data = await res.json();
+            logOutput(data, res.status);
+        }
+
+        async function getShortToken() {
+            const res = await fetch("/api/v1/auth/test-short-expiry", { method: "POST" });
+            const data = await res.json();
+            currentAccessToken = data.short_access_token;
+            document.getElementById("access-token-box").value = currentAccessToken;
+            logOutput({ message: data.message, instructions: "Now quickly click 'Get Protected Profile' within 5 seconds, then wait 6 seconds and click it again to verify 401 TOKEN_EXPIRED." }, 200);
+        }
+    </script>
 {% endblock %}
