@@ -40,10 +40,10 @@ jobs:
 
       - name: Run Automated Test Suite with Coverage
         env:
-          FLASK_ENV: testing
-          DATABASE_URL: sqlite:///:memory:
-          CELERY_BROKER_URL: memory://
-          CELERY_RESULT_BACKEND: cache+memory://
+          FLASK_ENV: "testing"
+          DATABASE_URL: "sqlite:///:memory:"
+          CELERY_BROKER_URL: "memory://"
+          CELERY_RESULT_BACKEND: "cache+memory://"
         run: |
           pytest -v --cov=capstone --cov-report=term-missing --cov-report=xml
 
