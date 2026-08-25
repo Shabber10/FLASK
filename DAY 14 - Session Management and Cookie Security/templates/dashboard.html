@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day 14 - User Dashboard</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.85);
+            --primary: #38bdf8;
+            --success: #34d399;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --danger: #f87171;
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 1rem;
+            padding: 2.5rem;
+            width: 100%;
+            max-width: 520px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5), 0 8px 10px -6px rgba(0,0,0,0.5);
+        }
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(52, 211, 153, 0.15);
+            color: var(--success);
+            padding: 0.35rem 0.85rem;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+        h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .user-highlight { color: var(--primary); }
+        .info-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 0.9rem;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { color: var(--text-muted); }
+        .info-val { font-weight: 600; color: var(--text-main); }
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        a.btn {
+            flex: 1;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .btn-logout {
+            background: rgba(248, 113, 113, 0.15);
+            color: var(--danger);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+        .btn-logout:hover {
+            background: var(--danger);
+            color: #0f172a;
+        }
+        .btn-refresh {
+            background: rgba(56, 189, 248, 0.15);
+            color: var(--primary);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+        .btn-refresh:hover {
+            background: var(--primary);
+            color: #0f172a;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header-row">
+            <span class="badge">● Active Session</span>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">HTTP State Preserved</span>
+        </div>
+
+        <h2>Welcome, <span class="user-highlight">{{ user }}</span>! 👋</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem;">You are authenticated via Flask's server-side session state management.</p>
+
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">Logged In As:</span>
+                <span class="info-val">{{ user }}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Session Storage:</span>
+                <span class="info-val">Server-Side Session Store</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Client Cookie:</span>
+                <span class="info-val">Signed <code>session</code> identifier</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Session Expiry:</span>
+                <span class="info-val">Timed Lifetime (e.g. 2 minutes inactivity)</span>
+            </div>
+        </div>
+
+        <div class="btn-group">
+            <a href="/dashboard" class="btn btn-refresh">↻ Refresh Session</a>
+            <a href="/logout" class="btn btn-logout">Logout User ➔</a>
+        </div>
+    </div>
+</body>
+</html>
