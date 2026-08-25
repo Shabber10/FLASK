@@ -20,6 +20,7 @@ instance/
 .webassets-cache
 celerybeat-schedule
 celerybeat.pid
+flask_session/
 
 # Testing & Coverage
 .pytest_cache/

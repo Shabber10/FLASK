@@ -273,6 +273,12 @@ This document serves as the single source of truth for the complete curriculum s
     *   [1. Flask Session Mechanics and Security.md](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/1.%20Flask%20Session%20Mechanics%20and%20Security.md)
     *   [2. Server-Side Sessions with Redis and Flask-Session.md](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/2.%20Server-Side%20Sessions%20with%20Redis%20and%20Flask-Session.md)
     *   [3. Practice App - Secure Server-Side Redis Session Manager.py](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/3.%20Practice%20App%20-%20Secure%20Server-Side%20Redis%20Session%20Manager.py)
+    *   [Class Notes - State Management in Flask.md](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/Class%20Notes%20-%20State%20Management%20in%20Flask.md)
+    *   [Class Notes - Session Management in Flask.md](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/Class%20Notes%20-%20Session%20Management%20in%20Flask.md)
+    *   [demo_cookies_state_management.py](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/demo_cookies_state_management.py)
+    *   [demo_flask_session_filesystem.py](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/demo_flask_session_filesystem.py)
+    *   [demo_database_session_auth.py](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/demo_database_session_auth.py)
+    *   [Class Notes DOCX Files](file:///c:/Users/SHABBER%20HUSSAIN/Desktop/FLASK/DAY%2014%20-%20Session%20Management%20and%20Cookie%20Security/Class%20Notes/)
 *   **Audit Status**: ✅ 100% Complete & Verified
 
 ---
